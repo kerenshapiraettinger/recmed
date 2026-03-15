@@ -10,11 +10,16 @@ def get_connection():
     return conn
 
 def init_db():
+    import config
     schema_path = os.path.join(os.path.dirname(__file__), "schema.sql")
     with open(schema_path) as f:
         schema = f.read()
     with get_connection() as conn:
         conn.executescript(schema)
+        # Sync profile names from env vars so they survive server restarts
+        for pid, name in config.PROFILES.items():
+            conn.execute("UPDATE profiles SET name = ? WHERE id = ?", (pid, name))
+        conn.commit()
 
 def query(sql, params=(), one=False):
     with get_connection() as conn:
