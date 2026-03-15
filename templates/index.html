@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}RecMed — Choose Profile{% endblock %}
+{% block content %}
+<div class="hero">
+  <h1>RecMed</h1>
+  <p class="tagline">Personal movie &amp; series recommendations</p>
+
+  <div class="profile-cards">
+    {% for pid, name in profiles.items() %}
+    <div class="profile-card {% if profile and profile.id == pid %}active{% endif %}">
+      <a href="{{ url_for('set_profile', pid=pid) }}" class="profile-card-link">
+        <div class="profile-avatar">{{ name[0] }}</div>
+        <div class="profile-name">{{ name }}</div>
+      </a>
+      <form class="rename-form" method="post"
+            action="{{ url_for('rename_profile', pid=pid) }}">
+        <input class="rename-input" type="text" name="name"
+               placeholder="Rename…" maxlength="30">
+        <button class="btn btn-sm" type="submit">Save</button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

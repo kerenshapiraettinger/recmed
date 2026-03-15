@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Recommendations — {{ profile.name }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2>Your recommendations, {{ profile.name }}</h2>
+</div>
+
+{% if insights %}
+<div class="insights-bar">
+  <span class="insights-label">Your taste:</span>
+  {% for g in insights[:6] %}
+  <span class="genre-tag {% if g.score > 0 %}tag-pos{% elif g.score < 0 %}tag-neg{% endif %}">
+    {{ g.genre }}
+    <small>{{ '+' if g.score > 0 else '' }}{{ '%.1f'|format(g.score) }}</small>
+  </span>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if recs %}
+<div class="card-grid">
+  {% for item in recs %}
+  <a class="card" href="{{ url_for('title_detail', content_id=item.id) }}">
+    {% if item.poster_url %}
+    <img class="card-poster" src="{{ item.poster_url }}" alt="{{ item.title }}" loading="lazy">
+    {% else %}
+    <div class="card-poster card-no-poster">{{ item.title[0] }}</div>
+    {% endif %}
+    <div class="card-body">
+      <div class="card-title">{{ item.title }}</div>
+      <div class="card-meta">
+        <span class="badge badge-type">{{ item.content_type }}</span>
+        <span class="imdb-score">★ {{ item.imdb_rating }}</span>
+        <span class="year">{{ item.release_year }}</span>
+      </div>
+      <div class="card-genres">
+        {% for g in item.genres_list[:3] %}
+        <span class="genre-pill">{{ g }}</span>
+        {% endfor %}
+      </div>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+  <p>No recommendations yet.</p>
+  <p>Search for movies and series you've already watched, rate them, and we'll personalise your list.</p>
+  <a class="btn" href="{{ url_for('search') }}">Find &amp; rate titles</a>
+</div>
+{% endif %}
+{% endblock %}

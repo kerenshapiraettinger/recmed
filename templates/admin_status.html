@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Admin Status — RecMed{% endblock %}
+{% block content %}
+<h2>Admin Status</h2>
+<p>Content database: <strong>{{ total }}</strong> titles</p>
+<p><a class="btn" href="{{ url_for('admin_refresh', secret=admin_secret) }}">
+  Run refresh now
+</a></p>
+
+<h3>Recent refreshes</h3>
+<table class="admin-table">
+  <thead>
+    <tr><th>ID</th><th>Started</th><th>Finished</th><th>Added</th><th>Removed</th><th>Status</th></tr>
+  </thead>
+  <tbody>
+    {% for log in logs %}
+    <tr>
+      <td>{{ log.id }}</td>
+      <td>{{ log.started_at }}</td>
+      <td>{{ log.finished_at or '—' }}</td>
+      <td>{{ log.titles_added }}</td>
+      <td>{{ log.titles_removed }}</td>
+      <td class="status-{{ log.status }}">{{ log.status }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Search — RecMed{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2>Search</h2>
+</div>
+
+<form class="search-form" method="get">
+  <input class="search-input" type="text" name="q" value="{{ q }}"
+         placeholder="Type a movie or series title..." autofocus>
+  <button class="btn" type="submit">Search</button>
+</form>
+
+{% if q and not results %}
+<div class="empty-state"><p>No results found for "{{ q }}".</p></div>
+{% endif %}
+
+{% if results %}
+<div class="search-results">
+  {% for item in results %}
+  <div class="search-row">
+    {% if item.poster_url %}
+    <img class="search-poster" src="{{ item.poster_url }}" alt="{{ item.title }}">
+    {% else %}
+    <div class="search-poster card-no-poster">{{ item.title[0] }}</div>
+    {% endif %}
+
+    <div class="search-info">
+      <div class="card-title">{{ item.title }}</div>
+      <div class="card-meta">
+        <span class="badge badge-type">{{ item.content_type }}</span>
+        <span class="imdb-score">★ {{ item.imdb_rating }}</span>
+        <span class="year">{{ item.release_year }}</span>
+      </div>
+    </div>
+
+    <div class="search-action">
+      {% if item.source == 'db' %}
+        <a class="btn btn-sm" href="{{ url_for('title_detail', content_id=item.id) }}">
+          Rate / View
+        </a>
+      {% else %}
+        {# TMDB result not yet in DB — inline rating form #}
+        <form method="post" action="{{ url_for('add_from_search') }}" class="inline-rate-form">
+          <input type="hidden" name="tmdb_id"      value="{{ item.tmdb_id }}">
+          <input type="hidden" name="title"         value="{{ item.title }}">
+          <input type="hidden" name="content_type"  value="{{ item.content_type }}">
+          <input type="hidden" name="release_year"  value="{{ item.release_year }}">
+          <input type="hidden" name="imdb_rating"   value="{{ (item.imdb_rating * 10)|int }}">
+          <input type="hidden" name="poster_url"    value="{{ item.poster_url or '' }}">
+          <div class="inline-stars" data-form-id="{{ loop.index }}">
+            {% for i in range(1, 11) %}
+            <span class="star" data-val="{{ i }}">★</span>
+            {% endfor %}
+          </div>
+          <input type="hidden" name="user_rating" class="rating-val" value="">
+          <button class="btn btn-sm" type="submit">Save rating</button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('.inline-stars').forEach(widget => {
+  const stars = widget.querySelectorAll('.star');
+  const form  = widget.closest('form');
+  const input = form.querySelector('.rating-val');
+
+  stars.forEach(star => {
+    star.addEventListener('mouseenter', () => {
+      const val = parseInt(star.dataset.val);
+      stars.forEach(s => s.classList.toggle('hover', parseInt(s.dataset.val) <= val));
+    });
+    star.addEventListener('mouseleave', () => stars.forEach(s => s.classList.remove('hover')));
+    star.addEventListener('click', () => {
+      const val = parseInt(star.dataset.val);
+      input.value = val;
+      stars.forEach(s => s.classList.toggle('filled', parseInt(s.dataset.val) <= val));
+    });
+  });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}{{ item.title }} — RecMed{% endblock %}
+{% block content %}
+<div class="detail">
+  <div class="detail-poster-col">
+    {% if item.poster_url %}
+    <img class="detail-poster" src="{{ item.poster_url }}" alt="{{ item.title }}">
+    {% else %}
+    <div class="detail-poster detail-no-poster">{{ item.title[0] }}</div>
+    {% endif %}
+  </div>
+
+  <div class="detail-info">
+    <h1 class="detail-title">{{ item.title }}</h1>
+    <div class="detail-meta">
+      <span class="badge badge-type">{{ item.content_type }}</span>
+      <span class="imdb-score">★ {{ item.imdb_rating }} IMDb</span>
+      <span class="year">{{ item.release_year }}</span>
+    </div>
+    <div class="card-genres" style="margin-bottom:1rem">
+      {% for g in item.genres_list %}
+      <span class="genre-pill">{{ g }}</span>
+      {% endfor %}
+    </div>
+
+    {% if item.plot %}
+    <p class="detail-plot">{{ item.plot }}</p>
+    {% endif %}
+
+    <div class="rating-widget">
+      <p class="rating-label">
+        {% if item.user_rating %}
+          Your rating: <strong>{{ item.user_rating }}/10</strong>
+        {% else %}
+          Rate this title:
+        {% endif %}
+      </p>
+      <div class="stars" id="stars" data-current="{{ item.user_rating or 0 }}">
+        {% for i in range(1, 11) %}
+        <span class="star {% if item.user_rating and i <= item.user_rating %}filled{% endif %}"
+              data-val="{{ i }}">★</span>
+        {% endfor %}
+      </div>
+      <p class="rating-hint" id="rating-hint"></p>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const contentId = {{ item.id }};
+const stars = document.querySelectorAll('.star');
+const hint = document.getElementById('rating-hint');
+
+stars.forEach(star => {
+  star.addEventListener('mouseenter', () => {
+    const val = parseInt(star.dataset.val);
+    stars.forEach(s => s.classList.toggle('hover', parseInt(s.dataset.val) <= val));
+    hint.textContent = val + '/10';
+  });
+  star.addEventListener('mouseleave', () => {
+    stars.forEach(s => s.classList.remove('hover'));
+    hint.textContent = '';
+  });
+  star.addEventListener('click', async () => {
+    const val = parseInt(star.dataset.val);
+    const resp = await fetch('/rate', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({content_id: contentId, rating: val})
+    });
+    if (resp.ok) {
+      stars.forEach(s => s.classList.toggle('filled', parseInt(s.dataset.val) <= val));
+      hint.textContent = 'Saved!';
+      document.querySelector('.rating-label').innerHTML =
+        'Your rating: <strong>' + val + '/10</strong>';
+    }
+  });
+});
+</script>
+{% endblock %}

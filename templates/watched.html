@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Watched — {{ profile.name }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2>{{ profile.name }}'s watch history</h2>
+  <a class="btn" href="{{ url_for('search') }}">+ Add title</a>
+</div>
+
+{% if items %}
+<div class="card-grid">
+  {% for item in items %}
+  <a class="card" href="{{ url_for('title_detail', content_id=item.id) }}">
+    {% if item.poster_url %}
+    <img class="card-poster" src="{{ item.poster_url }}" alt="{{ item.title }}" loading="lazy">
+    {% else %}
+    <div class="card-poster card-no-poster">{{ item.title[0] }}</div>
+    {% endif %}
+    <div class="card-body">
+      <div class="card-title">{{ item.title }}</div>
+      <div class="card-meta">
+        <span class="badge badge-type">{{ item.content_type }}</span>
+        <span class="imdb-score">★ {{ item.imdb_rating }}</span>
+        <span class="year-user-rating">You: {{ item.rating }}/10</span>
+      </div>
+      <div class="card-genres">
+        {% for g in item.genres_list[:3] %}<span class="genre-pill">{{ g }}</span>{% endfor %}
+      </div>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+  <p>You haven't rated anything yet.</p>
+  <a class="btn" href="{{ url_for('search') }}">Find &amp; rate titles</a>
+</div>
+{% endif %}
+{% endblock %}

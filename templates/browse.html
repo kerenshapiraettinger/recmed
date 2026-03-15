@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Browse — RecMed{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2>Browse</h2>
+  <form class="filter-form" method="get">
+    <select name="type" onchange="this.form.submit()">
+      <option value="">All types</option>
+      <option value="movie" {% if type_filter=='movie' %}selected{% endif %}>Movies</option>
+      <option value="series" {% if type_filter=='series' %}selected{% endif %}>Series</option>
+    </select>
+    <select name="genre" onchange="this.form.submit()">
+      <option value="">All genres</option>
+      {% for g in all_genres %}
+      <option value="{{ g }}" {% if genre_filter==g %}selected{% endif %}>{{ g }}</option>
+      {% endfor %}
+    </select>
+    <input type="number" name="year" placeholder="Year"
+           value="{{ year_filter }}" min="2019" max="2026" style="width:80px"
+           onchange="this.form.submit()">
+  </form>
+</div>
+
+{% if items %}
+<div class="card-grid">
+  {% for item in items %}
+  <a class="card" href="{{ url_for('title_detail', content_id=item.id) }}">
+    {% if item.poster_url %}
+    <img class="card-poster" src="{{ item.poster_url }}" alt="{{ item.title }}" loading="lazy">
+    {% else %}
+    <div class="card-poster card-no-poster">{{ item.title[0] }}</div>
+    {% endif %}
+    <div class="card-body">
+      <div class="card-title">{{ item.title }}</div>
+      <div class="card-meta">
+        <span class="badge badge-type">{{ item.content_type }}</span>
+        <span class="imdb-score">★ {{ item.imdb_rating }}</span>
+        <span class="year">{{ item.release_year }}</span>
+      </div>
+      <div class="card-genres">
+        {% for g in item.genres_list[:3] %}<span class="genre-pill">{{ g }}</span>{% endfor %}
+      </div>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state"><p>No titles match your filters.</p></div>
+{% endif %}
+{% endblock %}

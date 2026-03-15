@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}RecMed{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <nav class="nav">
+    <a class="nav-brand" href="/">RecMed</a>
+    <div class="nav-links">
+      {% if profile %}
+        <span class="nav-profile">{{ profile.name }}</span>
+        <a href="{{ url_for('recommendations') }}">Recommendations</a>
+        <a href="{{ url_for('browse') }}">Browse</a>
+        <a href="{{ url_for('watched') }}">Watched</a>
+        <a href="{{ url_for('search') }}">Search</a>
+        <a href="/">Home</a>
+      {% endif %}
+    </div>
+  </nav>
+
+  <main class="main">
+    {% block content %}{% endblock %}
+  </main>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>
