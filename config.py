@@ -17,4 +17,8 @@ CONTENT_YEARS   = 5     # rolling window in years
 PROFILES = {
     1: "User 1",
     2: "User 2",
+    3: "User 3",
+    4: "User 4",
+    5: "User 5",
+    6: "User 6",
 }

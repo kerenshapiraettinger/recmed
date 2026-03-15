@@ -330,8 +330,10 @@ def _refresh_loop():
 
 # ── startup ───────────────────────────────────────────────────────────────────
 
+# Runs on every startup (python app.py AND gunicorn)
+init_db()
+t = threading.Thread(target=_refresh_loop, daemon=True)
+t.start()
+
 if __name__ == "__main__":
-    init_db()
-    t = threading.Thread(target=_refresh_loop, daemon=True)
-    t.start()
     app.run(debug=False, port=5000)

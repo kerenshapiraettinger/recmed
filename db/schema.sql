@@ -19,6 +19,10 @@ CREATE TABLE IF NOT EXISTS profiles (
 
 INSERT OR IGNORE INTO profiles VALUES (1, 'User 1');
 INSERT OR IGNORE INTO profiles VALUES (2, 'User 2');
+INSERT OR IGNORE INTO profiles VALUES (3, 'User 3');
+INSERT OR IGNORE INTO profiles VALUES (4, 'User 4');
+INSERT OR IGNORE INTO profiles VALUES (5, 'User 5');
+INSERT OR IGNORE INTO profiles VALUES (6, 'User 6');
 
 CREATE TABLE IF NOT EXISTS ratings (
     profile_id  INTEGER NOT NULL REFERENCES profiles(id),
