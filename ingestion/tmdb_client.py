@@ -1,14 +1,15 @@
+import os
 import requests
 import json
 from datetime import datetime, date
-from config import TMDB_API_KEY, MIN_IMDB_RATING, MIN_VOTE_COUNT, CONTENT_YEARS
+from config import MIN_IMDB_RATING, MIN_VOTE_COUNT, CONTENT_YEARS
 
 BASE_URL = "https://api.themoviedb.org/3"
 POSTER_BASE = "https://image.tmdb.org/t/p/w342"
 
 def _get(path, params=None):
     params = params or {}
-    params["api_key"] = TMDB_API_KEY
+    params["api_key"] = os.environ.get("TMDB_API_KEY", "")
     r = requests.get(BASE_URL + path, params=params, timeout=10)
     r.raise_for_status()
     return r.json()
