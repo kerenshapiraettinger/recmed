@@ -1,3 +1,4 @@
+import os
 import threading
 import time
 import json
@@ -331,8 +332,6 @@ def _refresh_loop():
 # ── startup ───────────────────────────────────────────────────────────────────
 
 # Runs on every startup (python app.py AND gunicorn)
-_tmdb_key = os.environ.get("TMDB_API_KEY", "")
-print(f"[startup] TMDB_API_KEY set: {bool(_tmdb_key)} | first 6 chars: {_tmdb_key[:6]!r}")
 init_db()
 t = threading.Thread(target=_refresh_loop, daemon=True)
 t.start()
