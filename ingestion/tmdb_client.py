@@ -121,5 +121,6 @@ def search_tmdb(query, content_type=None):
                 "imdb_rating": round(item.get("vote_average", 0), 1),
                 "poster_url": POSTER_BASE + poster_path if poster_path else None,
                 "genres": json.dumps([]),
+                "plot": item.get("overview", ""),
             })
     return results

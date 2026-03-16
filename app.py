@@ -224,7 +224,7 @@ def search():
 
 @app.route("/add_from_search", methods=["POST"])
 def add_from_search():
-    """Add a TMDB result (not yet in DB) so user can rate it."""
+    """Add a TMDB result (not yet in DB) and redirect to its detail page."""
     profile = current_profile()
     if not profile:
         return redirect(url_for("index"))
@@ -233,12 +233,9 @@ def add_from_search():
     title      = request.form["title"]
     ctype      = request.form["content_type"]
     year       = int(request.form.get("release_year", 0))
-    rating_val = int(request.form.get("imdb_rating", 0) or 0)
+    rating_val = float(request.form.get("imdb_rating", 0) or 0)
     poster     = request.form.get("poster_url", "")
-    user_rating_raw = request.form.get("user_rating", "").strip()
-    if not user_rating_raw:
-        return redirect(url_for("search", q=title))
-    user_rating = round(float(user_rating_raw), 1)
+    plot       = request.form.get("plot", "")
 
     today = datetime.utcnow().date().isoformat()
 
@@ -246,22 +243,17 @@ def add_from_search():
     existing = query("SELECT id FROM content WHERE tmdb_id = ?", (tmdb_id,), one=True)
     if existing:
         content_id = existing["id"]
+        if plot:
+            execute("UPDATE content SET plot = ? WHERE id = ? AND (plot IS NULL OR plot = '')",
+                    (plot, content_id))
     else:
         content_id = execute(
             """INSERT INTO content (tmdb_id, title, content_type, release_year,
-               imdb_rating, genres, poster_url, last_refreshed)
-               VALUES (?,?,?,?,?,?,?,?)""",
-            (tmdb_id, title, ctype, year, rating_val / 10.0, "[]", poster, today)
+               imdb_rating, genres, poster_url, plot, last_refreshed)
+               VALUES (?,?,?,?,?,?,?,?,?)""",
+            (tmdb_id, title, ctype, year, rating_val, "[]", poster, plot, today)
         )
 
-    # Save rating
-    execute(
-        """INSERT INTO ratings (profile_id, content_id, rating, rated_at)
-           VALUES (?,?,?,?)
-           ON CONFLICT(profile_id, content_id) DO UPDATE SET rating=excluded.rating""",
-        (profile["id"], content_id, user_rating, datetime.utcnow().isoformat())
-    )
-    rebuild_affinity(profile["id"])
     return redirect(url_for("title_detail", content_id=content_id))
 
 

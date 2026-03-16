@@ -32,27 +32,27 @@
         <span class="imdb-score">★ {{ item.imdb_rating }}</span>
         <span class="year">{{ item.release_year }}</span>
       </div>
+      {% if item.plot %}
+      <p class="search-plot">{{ item.plot }}</p>
+      {% endif %}
     </div>
 
     <div class="search-action">
       {% if item.source == 'db' %}
         <a class="btn btn-sm" href="{{ url_for('title_detail', content_id=item.id) }}">
-          Rate / View
+          View & Rate
         </a>
       {% else %}
-        {# TMDB result not yet in DB — inline rating form #}
-        <form method="post" action="{{ url_for('add_from_search') }}" class="inline-rate-form">
+        {# TMDB result not yet in DB — add it and go to detail page #}
+        <form method="post" action="{{ url_for('add_from_search') }}">
           <input type="hidden" name="tmdb_id"      value="{{ item.tmdb_id }}">
           <input type="hidden" name="title"         value="{{ item.title }}">
           <input type="hidden" name="content_type"  value="{{ item.content_type }}">
           <input type="hidden" name="release_year"  value="{{ item.release_year }}">
-          <input type="hidden" name="imdb_rating"   value="{{ (item.imdb_rating * 10)|int }}">
+          <input type="hidden" name="imdb_rating"   value="{{ item.imdb_rating }}">
           <input type="hidden" name="poster_url"    value="{{ item.poster_url or '' }}">
-          <div class="inline-number-rate">
-            <input type="number" name="user_rating" class="rating-val"
-                   min="1" max="10" step="0.5" placeholder="1–10">
-            <button class="btn btn-sm" type="submit">Save</button>
-          </div>
+          <input type="hidden" name="plot"          value="{{ item.plot or '' }}">
+          <button class="btn btn-sm" type="submit">View & Rate</button>
         </form>
       {% endif %}
     </div>

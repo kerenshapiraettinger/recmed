@@ -295,6 +295,7 @@ a { color: inherit; text-decoration: none; }
   flex-shrink: 0;
 }
 .search-info { flex: 1; min-width: 0; }
+.search-plot { font-size: .8rem; color: var(--muted); margin-top: .35rem; line-height: 1.5; }
 .search-action { flex-shrink: 0; }
 
 .inline-rate-form { display: flex; flex-direction: column; gap: .35rem; align-items: flex-end; }
