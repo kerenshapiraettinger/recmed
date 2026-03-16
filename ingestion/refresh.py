@@ -26,17 +26,18 @@ def run_refresh():
 
         for item in rows:
             existing = query(
-                "SELECT id FROM content WHERE tmdb_id = ?", (item["tmdb_id"],), one=True
+                "SELECT id, plot FROM content WHERE tmdb_id = ?", (item["tmdb_id"],), one=True
             )
             if existing:
+                # Keep any existing plot (e.g. from OMDb); fill in from TMDB if empty
+                saved_plot = existing["plot"] or item.get("plot") or ""
                 execute(
                     """UPDATE content SET title=?, imdb_rating=?, genres=?,
-                       poster_url=?, last_refreshed=?,
-                       plot=COALESCE(NULLIF(plot,''), ?)
+                       poster_url=?, plot=?, last_refreshed=?
                        WHERE tmdb_id=?""",
                     (item["title"], item["imdb_rating"], item["genres"],
-                     item["poster_url"], item["last_refreshed"],
-                     item.get("plot", ""), item["tmdb_id"])
+                     item["poster_url"], saved_plot, item["last_refreshed"],
+                     item["tmdb_id"])
                 )
             else:
                 execute(
