@@ -84,12 +84,14 @@ def execute(sql, params=()):
             cur.execute(sql, params)
             last_id = None
             if sql_orig.strip().upper().startswith("INSERT"):
+                cur.execute("SAVEPOINT _lastval")
                 try:
                     cur.execute("SELECT lastval()")
                     row = cur.fetchone()
                     last_id = int(row["lastval"]) if row else None
+                    cur.execute("RELEASE SAVEPOINT _lastval")
                 except Exception:
-                    pass
+                    cur.execute("ROLLBACK TO SAVEPOINT _lastval")
             conn.commit()
             return last_id
         else:
