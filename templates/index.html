@@ -6,12 +6,25 @@
   <p class="tagline">{{ t.index_tagline }}</p>
 
   <div class="profile-cards">
-    {% for pid, name in profiles.items() %}
+    {% for pid, pdata in profiles.items() %}
     <div class="profile-card {% if profile and profile.id == pid %}active{% endif %}">
+
       <a href="{{ url_for('set_profile', pid=pid) }}" class="profile-card-link">
-        <div class="profile-avatar">{{ name[0] }}</div>
-        <div class="profile-name">{{ name }}</div>
+        <div class="profile-avatar">{{ pdata.avatar }}</div>
+        <div class="profile-name">{{ pdata.name }}</div>
       </a>
+
+      <button class="avatar-toggle-btn"
+              onclick="togglePicker('picker-{{ pid }}')">{{ t.change_avatar }}</button>
+
+      <div class="avatar-picker" id="picker-{{ pid }}">
+        {% for em in avatars %}
+        <button type="button"
+                class="avatar-option {% if em == pdata.avatar %}selected{% endif %}"
+                onclick="pickAvatar({{ pid }}, '{{ em }}', this)">{{ em }}</button>
+        {% endfor %}
+      </div>
+
       <form class="rename-form" method="post"
             action="{{ url_for('rename_profile', pid=pid) }}">
         <input class="rename-input" type="text" name="name"
@@ -24,7 +37,15 @@
     {# Add User card #}
     <div class="profile-card add-user-card">
       <form method="post" action="{{ url_for('add_profile') }}" class="add-user-form">
-        <div class="profile-avatar add-user-avatar">+</div>
+        <div class="profile-avatar" id="add-avatar-preview">🎬</div>
+        <div class="avatar-picker avatar-picker-inline">
+          {% for em in avatars %}
+          <button type="button"
+                  class="avatar-option {% if loop.first %}selected{% endif %}"
+                  onclick="pickNewAvatar('{{ em }}', this)">{{ em }}</button>
+          {% endfor %}
+        </div>
+        <input type="hidden" name="avatar" id="add-avatar-input" value="🎬">
         <input class="rename-input" type="text" name="name"
                placeholder="{{ t.add_user_placeholder }}" maxlength="30" required>
         <button class="btn btn-sm" type="submit">{{ t.add_user }}</button>
@@ -33,4 +54,37 @@
 
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function togglePicker(id) {
+  document.getElementById(id).classList.toggle('open');
+}
+
+function pickAvatar(pid, emoji, btn) {
+  btn.closest('.avatar-picker').querySelectorAll('.avatar-option')
+     .forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+
+  const card = btn.closest('.profile-card');
+  card.querySelector('.profile-avatar').textContent = emoji;
+  card.querySelector('.profile-avatar').style.fontSize = '2.2rem';
+  btn.closest('.avatar-picker').classList.remove('open');
+
+  fetch(`/profile/${pid}/avatar`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({avatar: emoji})
+  });
+}
+
+function pickNewAvatar(emoji, btn) {
+  btn.closest('.avatar-picker').querySelectorAll('.avatar-option')
+     .forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  document.getElementById('add-avatar-preview').textContent = emoji;
+  document.getElementById('add-avatar-input').value = emoji;
+}
+</script>
 {% endblock %}

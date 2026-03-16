@@ -43,6 +43,7 @@ EN = {
 
     'add_user': 'Add User',
     'add_user_placeholder': 'Enter name…',
+    'change_avatar': 'Change avatar',
 
     'badge_movie': 'movie',
     'badge_series': 'series',
@@ -94,6 +95,7 @@ HE = {
 
     'add_user': 'הוסף משתמש',
     'add_user_placeholder': 'הכנס שם…',
+    'change_avatar': 'שנה אווטאר',
 
     'badge_movie': 'סרט',
     'badge_series': 'סדרה',

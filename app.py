@@ -15,6 +15,21 @@ from ingestion.omdb_client import fetch_plot
 from ingestion.refresh import run_refresh
 from translations import TRANSLATIONS
 
+AVATARS = [
+    # Male
+    '👨','👦','🧔','👴',
+    # Female
+    '👩','👧','👱‍♀️','👵',
+    # Neutral / fun
+    '🧑','🧒','🤖','🧙',
+    # Animals
+    '🐱','🐶','🦊','🐻',
+    # Movie / objects
+    '🎬','🎥','🍿','🎭',
+    # Nature / landscape
+    '🌙','⭐','🏔️','🌊',
+]
+
 app = Flask(__name__)
 app.secret_key = config.SECRET_KEY
 
@@ -44,8 +59,8 @@ def current_profile():
     pid = session.get("profile_id")
     if not pid:
         return None
-    row = query("SELECT id, name FROM profiles WHERE id = ?", (pid,), one=True)
-    return {"id": row["id"], "name": row["name"]} if row else None
+    row = query("SELECT id, name, avatar FROM profiles WHERE id = ?", (pid,), one=True)
+    return {"id": row["id"], "name": row["name"], "avatar": row["avatar"] or '🎬'} if row else None
 
 def require_profile():
     p = current_profile()
@@ -57,13 +72,14 @@ def require_profile():
 # ── routes ────────────────────────────────────────────────────────────────────
 
 def get_all_profiles():
-    rows = query("SELECT id, name FROM profiles ORDER BY id")
-    return {row["id"]: row["name"] for row in rows}
+    rows = query("SELECT id, name, avatar FROM profiles ORDER BY id")
+    return {row["id"]: {"name": row["name"], "avatar": row["avatar"] or '🎬'} for row in rows}
 
 @app.route("/")
 def index():
     profile = current_profile()
-    return render_template("index.html", profiles=get_all_profiles(), profile=profile)
+    return render_template("index.html", profiles=get_all_profiles(),
+                           profile=profile, avatars=AVATARS)
 
 @app.route("/set_lang/<lang>")
 def set_lang(lang):
@@ -92,12 +108,27 @@ def set_profile(pid):
 
 @app.route("/profile/add", methods=["POST"])
 def add_profile():
-    name = request.form.get("name", "").strip() or "New User"
-    row = query("SELECT MAX(id) AS m FROM profiles", one=True)
+    name   = request.form.get("name", "").strip() or "New User"
+    avatar = request.form.get("avatar", "🎬").strip()
+    if avatar not in AVATARS:
+        avatar = "🎬"
+    row    = query("SELECT MAX(id) AS m FROM profiles", one=True)
     new_id = (row["m"] or 0) + 1
-    execute("INSERT INTO profiles (id, name) VALUES (?, ?)", (new_id, name))
+    execute("INSERT INTO profiles (id, name, avatar) VALUES (?, ?, ?)", (new_id, name, avatar))
     session["profile_id"] = new_id
     return redirect(url_for("recommendations"))
+
+
+@app.route("/profile/<int:pid>/avatar", methods=["POST"])
+def update_avatar(pid):
+    if not query("SELECT id FROM profiles WHERE id = ?", (pid,), one=True):
+        abort(404)
+    data   = request.get_json()
+    avatar = (data or {}).get("avatar", "").strip()
+    if avatar not in AVATARS:
+        return jsonify({"error": "invalid avatar"}), 400
+    execute("UPDATE profiles SET avatar = ? WHERE id = ?", (avatar, pid))
+    return jsonify({"ok": True})
 
 
 @app.route("/recommendations")

@@ -57,6 +57,12 @@ def init_db():
                     conn.commit()
                 except Exception:
                     conn.rollback()
+            # Add avatar column if missing
+            try:
+                cur.execute("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS avatar TEXT DEFAULT '🎬'")
+                conn.commit()
+            except Exception:
+                conn.rollback()
             for pid, name in config.PROFILES.items():
                 cur.execute("UPDATE profiles SET name = %s WHERE id = %s", (name, pid))
             conn.commit()
@@ -71,6 +77,11 @@ def init_db():
                 conn.commit()
             except Exception:
                 pass
+        try:
+            conn.execute("ALTER TABLE profiles ADD COLUMN avatar TEXT DEFAULT '🎬'")
+            conn.commit()
+        except Exception:
+            pass
         for pid, name in config.PROFILES.items():
             conn.execute("UPDATE profiles SET name = ? WHERE id = ?", (pid, name))
         conn.commit()

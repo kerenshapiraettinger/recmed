@@ -11,7 +11,7 @@
     <a class="nav-brand" href="/">RecMed</a>
     <div class="nav-links">
       {% if profile %}
-        <span class="nav-profile">{{ profile.name }}</span>
+        <span class="nav-profile">{{ profile.avatar }} {{ profile.name }}</span>
         <a href="{{ url_for('recommendations') }}">{{ t.nav_recs }}</a>
         <a href="{{ url_for('browse') }}">{{ t.nav_browse }}</a>
         <a href="{{ url_for('watched') }}">{{ t.nav_watched }}</a>
