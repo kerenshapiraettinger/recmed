@@ -15,13 +15,33 @@ def run_refresh():
     added = 0
 
     try:
-        movie_genres = get_genre_map("movie")
-        tv_genres = get_genre_map("tv")
+        # Fetch genre maps in both languages
+        movie_genres_en = get_genre_map("movie", "en-US")
+        tv_genres_en    = get_genre_map("tv",    "en-US")
+        movie_genres_he = get_genre_map("movie", "he-IL")
+        tv_genres_he    = get_genre_map("tv",    "he-IL")
 
+        # Fetch all titles in English, indexed by tmdb_id
+        en_items = {}
+        for item in discover("movie", movie_genres_en, "en-US"):
+            en_items[item["tmdb_id"]] = item
+        for item in discover("tv", tv_genres_en, "en-US"):
+            en_items[item["tmdb_id"]] = item
+
+        # Fetch Hebrew data for the same titles
+        he_items = {}
+        for item in discover("movie", movie_genres_he, "he-IL"):
+            he_items[item["tmdb_id"]] = item
+        for item in discover("tv", tv_genres_he, "he-IL"):
+            he_items[item["tmdb_id"]] = item
+
+        # Merge: attach Hebrew fields onto English items
         rows = []
-        for item in discover("movie", movie_genres):
-            rows.append(item)
-        for item in discover("tv", tv_genres):
+        for tmdb_id, item in en_items.items():
+            he = he_items.get(tmdb_id, {})
+            item["title_he"]  = he.get("title", "") or ""
+            item["plot_he"]   = he.get("plot", "") or ""
+            item["genres_he"] = he.get("genres", "[]")
             rows.append(item)
 
         for item in rows:
@@ -29,25 +49,31 @@ def run_refresh():
                 "SELECT id, plot FROM content WHERE tmdb_id = ?", (item["tmdb_id"],), one=True
             )
             if existing:
-                # Keep any existing plot (e.g. from OMDb); fill in from TMDB if empty
                 saved_plot = existing["plot"] or item.get("plot") or ""
                 execute(
                     """UPDATE content SET title=?, imdb_rating=?, genres=?,
-                       poster_url=?, plot=?, last_refreshed=?
+                       poster_url=?, plot=?,
+                       title_he=?, plot_he=?, genres_he=?,
+                       last_refreshed=?
                        WHERE tmdb_id=?""",
                     (item["title"], item["imdb_rating"], item["genres"],
-                     item["poster_url"], saved_plot, item["last_refreshed"],
-                     item["tmdb_id"])
+                     item["poster_url"], saved_plot,
+                     item["title_he"], item["plot_he"], item["genres_he"],
+                     item["last_refreshed"], item["tmdb_id"])
                 )
             else:
                 execute(
                     """INSERT INTO content
                        (tmdb_id, title, content_type, release_year, imdb_rating,
-                        genres, poster_url, plot, last_refreshed)
-                       VALUES (?,?,?,?,?,?,?,?,?)""",
+                        genres, poster_url, plot,
+                        title_he, plot_he, genres_he,
+                        last_refreshed)
+                       VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
                     (item["tmdb_id"], item["title"], item["content_type"],
                      item["release_year"], item["imdb_rating"], item["genres"],
-                     item["poster_url"], item.get("plot", ""), item["last_refreshed"])
+                     item["poster_url"], item.get("plot", ""),
+                     item["title_he"], item["plot_he"], item["genres_he"],
+                     item["last_refreshed"])
                 )
                 added += 1
 

@@ -50,6 +50,13 @@ def init_db():
                 conn.commit()
             except Exception:
                 conn.rollback()
+            # Add Hebrew columns if missing
+            for col, default in [("title_he", "''"), ("plot_he", "''"), ("genres_he", "'[]'")]:
+                try:
+                    cur.execute(f"ALTER TABLE content ADD COLUMN IF NOT EXISTS {col} TEXT DEFAULT {default}")
+                    conn.commit()
+                except Exception:
+                    conn.rollback()
             for pid, name in config.PROFILES.items():
                 cur.execute("UPDATE profiles SET name = %s WHERE id = %s", (name, pid))
             conn.commit()
@@ -58,6 +65,12 @@ def init_db():
     else:
         conn = _sqlite_conn()
         conn.executescript(schema)
+        for col, default in [("title_he", "''"), ("plot_he", "''"), ("genres_he", "'[]'")]:
+            try:
+                conn.execute(f"ALTER TABLE content ADD COLUMN {col} TEXT DEFAULT {default}")
+                conn.commit()
+            except Exception:
+                pass
         for pid, name in config.PROFILES.items():
             conn.execute("UPDATE profiles SET name = ? WHERE id = ?", (pid, name))
         conn.commit()

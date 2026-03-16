@@ -14,13 +14,13 @@ def _get(path, params=None):
     r.raise_for_status()
     return r.json()
 
-def get_genre_map(content_type="movie"):
+def get_genre_map(content_type="movie", language="en-US"):
     """Returns {genre_id: genre_name}"""
     endpoint = "/genre/movie/list" if content_type == "movie" else "/genre/tv/list"
-    data = _get(endpoint)
+    data = _get(endpoint, {"language": language})
     return {g["id"]: g["name"] for g in data["genres"]}
 
-def discover(content_type="movie", genre_map=None):
+def discover(content_type="movie", genre_map=None, language="en-US"):
     """
     Yields title dicts for all pages matching our criteria.
     content_type: 'movie' or 'tv'
@@ -48,6 +48,7 @@ def discover(content_type="movie", genre_map=None):
         "vote_average.gte": MIN_IMDB_RATING,
         "vote_count.gte": MIN_VOTE_COUNT,
         "sort_by": "vote_average.desc",
+        "language": language,
         "page": 1,
     }
 

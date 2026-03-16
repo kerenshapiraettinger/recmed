@@ -27,6 +27,19 @@ def inject_lang():
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
+def localize(item, lang):
+    """Swap title/plot/genres with Hebrew versions when lang is 'he'."""
+    if lang != 'he':
+        return item
+    item = dict(item)
+    item['title'] = item.get('title_he') or item.get('title', '')
+    item['plot']  = item.get('plot_he')  or item.get('plot', '')
+    he_genres = item.get('genres_he', '[]')
+    if he_genres and he_genres != '[]':
+        item['genres'] = he_genres
+    return item
+
+
 def current_profile():
     pid = session.get("profile_id")
     if pid not in config.PROFILES:
@@ -88,30 +101,35 @@ def recommendations():
 
     genre_filter = request.args.get("genre", "").strip()
 
+    lang = session.get('lang', 'en')
     all_recs = get_recommendations(profile["id"], limit=100)
     insights = get_genre_insights(profile["id"])
+
+    # Localize and parse genres
+    all_recs = [localize(i, lang) for i in all_recs]
     for item in all_recs:
         try:
             item["genres_list"] = json.loads(item["genres"])
         except Exception:
             item["genres_list"] = []
 
-    # All genres from the full content DB so every genre is always available
+    # Genre buttons: use Hebrew genres column when in Hebrew mode
+    genres_col = "genres_he" if lang == "he" else "genres"
     all_genres = sorted({
         g
-        for row in query("SELECT genres FROM content")
+        for row in query(f"SELECT {genres_col} AS genres FROM content")
         for g in json.loads(row["genres"] or "[]")
+        if g
     })
 
     if genre_filter:
-        # Filter from recs first; if empty, fall back to full DB for that genre
         filtered = [i for i in all_recs if genre_filter in i["genres_list"]]
         if not filtered:
             db_items = query(
-                "SELECT * FROM content WHERE genres LIKE ? ORDER BY imdb_rating DESC LIMIT 50",
+                f"SELECT * FROM content WHERE {genres_col} LIKE ? ORDER BY imdb_rating DESC LIMIT 50",
                 (f'%{genre_filter}%',)
             )
-            filtered = [dict(i) for i in db_items]
+            filtered = [localize(dict(i), lang) for i in db_items]
             for item in filtered:
                 try:
                     item["genres_list"] = json.loads(item["genres"])
@@ -135,7 +153,9 @@ def watched():
     profile = current_profile()
     if not profile:
         return redirect(url_for("index"))
+    lang = session.get('lang', 'en')
     items = get_watched(profile["id"])
+    items = [localize(i, lang) for i in items]
     for item in items:
         try:
             item["genres_list"] = json.loads(item["genres"])
@@ -154,10 +174,12 @@ def browse():
     type_filter  = request.args.get("type", "")
     year_filter  = request.args.get("year", "")
 
+    lang = session.get('lang', 'en')
+    genres_col = "genres_he" if lang == "he" else "genres"
     sql = "SELECT * FROM content WHERE 1=1"
     params = []
     if genre_filter:
-        sql += " AND genres LIKE ?"
+        sql += f" AND {genres_col} LIKE ?"
         params.append(f"%{genre_filter}%")
     if type_filter:
         sql += " AND content_type = ?"
@@ -168,7 +190,7 @@ def browse():
     sql += " ORDER BY imdb_rating DESC LIMIT 100"
 
     items = query(sql, params)
-    items = [dict(i) for i in items]
+    items = [localize(dict(i), lang) for i in items]
     for item in items:
         try:
             item["genres_list"] = json.loads(item["genres"])
@@ -176,11 +198,13 @@ def browse():
             item["genres_list"] = []
 
     # All unique genres for filter dropdown
+    genres_col = "genres_he" if lang == "he" else "genres"
     all_genres = set()
-    for row in query("SELECT genres FROM content"):
+    for row in query(f"SELECT {genres_col} AS genres FROM content"):
         try:
             for g in json.loads(row["genres"]):
-                all_genres.add(g)
+                if g:
+                    all_genres.add(g)
         except Exception:
             pass
 
@@ -201,6 +225,7 @@ def title_detail(content_id):
     if not item:
         abort(404)
     item = dict(item)
+    lang = session.get('lang', 'en')
 
     # Lazy OMDb enrichment
     if not item.get("plot") and config.OMDB_API_KEY:
@@ -220,6 +245,7 @@ def title_detail(content_id):
                         (plot, content_id))
                 item["plot"] = plot
 
+    item = localize(item, lang)
     try:
         item["genres_list"] = json.loads(item["genres"])
     except Exception:
@@ -248,7 +274,7 @@ def search():
             (f"%{q}%",)
         )
         if db_results:
-            results = [dict(r) for r in db_results]
+            results = [localize(dict(r), session.get('lang', 'en')) for r in db_results]
             for item in results:
                 item["source"] = "db"
                 try:
