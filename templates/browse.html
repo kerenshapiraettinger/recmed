@@ -37,6 +37,7 @@
         <span class="imdb-score">★ {{ item.imdb_rating }}</span>
         <span class="year">{{ item.release_year }}</span>
       </div>
+      {% if item.plot %}<p class="card-plot">{{ item.plot }}</p>{% endif %}
       <div class="card-genres">
         {% for g in item.genres_list[:3] %}<span class="genre-pill">{{ g }}</span>{% endfor %}
       </div>
