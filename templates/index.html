@@ -1,9 +1,9 @@
 {% extends "base.html" %}
-{% block title %}RecMed — Choose Profile{% endblock %}
+{% block title %}RecMed{% endblock %}
 {% block content %}
 <div class="hero">
   <h1>RecMed</h1>
-  <p class="tagline">Personal movie &amp; series recommendations</p>
+  <p class="tagline">{{ t.index_tagline }}</p>
 
   <div class="profile-cards">
     {% for pid, name in profiles.items() %}
@@ -15,8 +15,8 @@
       <form class="rename-form" method="post"
             action="{{ url_for('rename_profile', pid=pid) }}">
         <input class="rename-input" type="text" name="name"
-               placeholder="Rename…" maxlength="30">
-        <button class="btn btn-sm" type="submit">Save</button>
+               placeholder="{{ t.rename_placeholder }}" maxlength="30">
+        <button class="btn btn-sm" type="submit">{{ t.btn_save }}</button>
       </form>
     </div>
     {% endfor %}

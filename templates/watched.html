@@ -1,9 +1,9 @@
 {% extends "base.html" %}
-{% block title %}Watched — {{ profile.name }}{% endblock %}
+{% block title %}{{ t.nav_watched }} — {{ profile.name }}{% endblock %}
 {% block content %}
 <div class="page-header">
-  <h2>{{ profile.name }}'s watch history</h2>
-  <a class="btn" href="{{ url_for('search') }}">+ Add title</a>
+  <h2>{{ profile.name }} — {{ t.watched_title }}</h2>
+  <a class="btn" href="{{ url_for('search') }}">{{ t.watched_add }}</a>
 </div>
 
 {% if items %}
@@ -18,9 +18,9 @@
     <div class="card-body">
       <div class="card-title">{{ item.title }}</div>
       <div class="card-meta">
-        <span class="badge badge-type">{{ item.content_type }}</span>
+        <span class="badge badge-type">{{ t.badge_movie if item.content_type == 'movie' else t.badge_series }}</span>
         <span class="imdb-score">★ {{ item.imdb_rating }}</span>
-        <span class="year-user-rating">You: {{ item.rating }}/10</span>
+        <span class="year-user-rating">{{ t.you_rated }} {{ item.rating }}/10</span>
       </div>
       {% if item.plot %}<p class="card-plot">{{ item.plot }}</p>{% endif %}
       <div class="card-genres">
@@ -32,8 +32,8 @@
 </div>
 {% else %}
 <div class="empty-state">
-  <p>You haven't rated anything yet.</p>
-  <a class="btn" href="{{ url_for('search') }}">Find &amp; rate titles</a>
+  <p>{{ t.watched_empty }}</p>
+  <a class="btn" href="{{ url_for('search') }}">{{ t.recs_find }}</a>
 </div>
 {% endif %}
 {% endblock %}

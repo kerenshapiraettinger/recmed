@@ -1,13 +1,13 @@
 {% extends "base.html" %}
-{% block title %}Recommendations — {{ profile.name }}{% endblock %}
+{% block title %}{{ t.nav_recs }} — {{ profile.name }}{% endblock %}
 {% block content %}
 <div class="page-header">
-  <h2>Your recommendations, {{ profile.name }}</h2>
+  <h2>{{ t.recs_title }}, {{ profile.name }}</h2>
 </div>
 
 {% if insights %}
 <div class="insights-bar">
-  <span class="insights-label">Your taste:</span>
+  <span class="insights-label">{{ t.recs_taste }}</span>
   {% for g in insights[:6] %}
   <span class="genre-tag {% if g.score > 0 %}tag-pos{% elif g.score < 0 %}tag-neg{% endif %}">
     {{ g.genre }}
@@ -20,7 +20,7 @@
 {% if all_genres %}
 <div class="genre-filter-bar">
   <a class="genre-btn {% if not genre_filter %}genre-btn-active{% endif %}"
-     href="{{ url_for('recommendations') }}">All</a>
+     href="{{ url_for('recommendations') }}">{{ t.recs_all }}</a>
   {% for g in all_genres %}
   <a class="genre-btn {% if genre_filter == g %}genre-btn-active{% endif %}"
      href="{{ url_for('recommendations', genre=g) }}">{{ g }}</a>
@@ -43,7 +43,7 @@
         <div class="card-body">
           <div class="card-title">{{ item.title }}</div>
           <div class="card-meta">
-            <span class="badge badge-type">{{ item.content_type }}</span>
+            <span class="badge badge-type">{{ t.badge_movie if item.content_type == 'movie' else t.badge_series }}</span>
             <span class="imdb-score">★ {{ item.imdb_rating }}</span>
             <span class="year">{{ item.release_year }}</span>
           </div>
@@ -61,9 +61,9 @@
   {% endfor %}
 {% else %}
 <div class="empty-state">
-  <p>No recommendations yet.</p>
-  <p>Search for movies and series you've already watched, rate them, and we'll personalise your list.</p>
-  <a class="btn" href="{{ url_for('search') }}">Find &amp; rate titles</a>
+  <p>{{ t.recs_empty }}</p>
+  <p>{{ t.recs_empty_sub }}</p>
+  <a class="btn" href="{{ url_for('search') }}">{{ t.recs_find }}</a>
 </div>
 {% endif %}
 {% endblock %}

@@ -332,6 +332,29 @@ a { color: inherit; text-decoration: none; }
 }
 .rating-exact-row input:focus { outline: none; border-color: var(--accent); }
 
+/* ── Language toggle button ───────────────────────────────────────────────── */
+.lang-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: .75rem;
+  padding: .25rem .65rem;
+}
+.lang-btn:hover { background: var(--surface2); color: var(--text); border-color: var(--accent); }
+
+/* ── RTL adjustments ──────────────────────────────────────────────────────── */
+[dir="rtl"] .nav { flex-direction: row-reverse; }
+[dir="rtl"] .nav-links { flex-direction: row-reverse; }
+[dir="rtl"] .page-header { flex-direction: row-reverse; }
+[dir="rtl"] .search-row { flex-direction: row-reverse; }
+[dir="rtl"] .search-info { text-align: right; }
+[dir="rtl"] .insights-bar { flex-direction: row-reverse; }
+[dir="rtl"] .genre-filter-bar { flex-direction: row-reverse; }
+[dir="rtl"] .detail { direction: rtl; }
+[dir="rtl"] .card-meta { flex-direction: row-reverse; }
+[dir="rtl"] .inline-rate-form { align-items: flex-start; }
+[dir="rtl"] .rating-exact-row { flex-direction: row-reverse; }
+
 /* ── Genre filter bar (recommendations) ──────────────────────────────────── */
 .genre-filter-bar {
   display: flex;

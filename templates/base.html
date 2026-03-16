@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ lang }}" {% if lang == 'he' %}dir="rtl"{% endif %}>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,12 +12,16 @@
     <div class="nav-links">
       {% if profile %}
         <span class="nav-profile">{{ profile.name }}</span>
-        <a href="{{ url_for('recommendations') }}">Recommendations</a>
-        <a href="{{ url_for('browse') }}">Browse</a>
-        <a href="{{ url_for('watched') }}">Watched</a>
-        <a href="{{ url_for('search') }}">Search</a>
-        <a href="/">Home</a>
+        <a href="{{ url_for('recommendations') }}">{{ t.nav_recs }}</a>
+        <a href="{{ url_for('browse') }}">{{ t.nav_browse }}</a>
+        <a href="{{ url_for('watched') }}">{{ t.nav_watched }}</a>
+        <a href="{{ url_for('search') }}">{{ t.nav_search }}</a>
+        <a href="/">{{ t.nav_home }}</a>
       {% endif %}
+      <a class="btn btn-sm lang-btn"
+         href="{{ url_for('set_lang', lang='he' if lang == 'en' else 'en') }}">
+        {{ t.lang_toggle }}
+      </a>
     </div>
   </nav>
 

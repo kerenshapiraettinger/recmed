@@ -13,9 +13,16 @@ from recommender.engine import (rebuild_affinity, get_recommendations,
 from ingestion.tmdb_client import search_tmdb, fetch_imdb_id
 from ingestion.omdb_client import fetch_plot
 from ingestion.refresh import run_refresh
+from translations import TRANSLATIONS
 
 app = Flask(__name__)
 app.secret_key = config.SECRET_KEY
+
+
+@app.context_processor
+def inject_lang():
+    lang = session.get('lang', 'en')
+    return {'t': TRANSLATIONS[lang], 'lang': lang}
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
@@ -45,6 +52,13 @@ def get_all_profiles():
 def index():
     profile = current_profile()
     return render_template("index.html", profiles=get_all_profiles(), profile=profile)
+
+@app.route("/set_lang/<lang>")
+def set_lang(lang):
+    if lang in ('en', 'he'):
+        session['lang'] = lang
+    return redirect(request.referrer or url_for('index'))
+
 
 @app.route("/profile/<int:pid>/rename", methods=["POST"])
 def rename_profile(pid):
@@ -232,7 +246,7 @@ def search():
                     item["genres_list"] = []
         else:
             # Fall back to TMDB search
-            tmdb_results = search_tmdb(q)
+            tmdb_results = search_tmdb(q, language=session.get('lang', 'en'))
             for item in tmdb_results:
                 item["source"] = "tmdb"
                 item["id"] = None

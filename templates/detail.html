@@ -13,14 +13,12 @@
   <div class="detail-info">
     <h1 class="detail-title">{{ item.title }}</h1>
     <div class="detail-meta">
-      <span class="badge badge-type">{{ item.content_type }}</span>
+      <span class="badge badge-type">{{ t.badge_movie if item.content_type == 'movie' else t.badge_series }}</span>
       <span class="imdb-score">★ {{ item.imdb_rating }} IMDb</span>
       <span class="year">{{ item.release_year }}</span>
     </div>
     <div class="card-genres" style="margin-bottom:1rem">
-      {% for g in item.genres_list %}
-      <span class="genre-pill">{{ g }}</span>
-      {% endfor %}
+      {% for g in item.genres_list %}<span class="genre-pill">{{ g }}</span>{% endfor %}
     </div>
 
     {% if item.plot %}
@@ -30,9 +28,9 @@
     <div class="rating-widget">
       <p class="rating-label" id="rating-label">
         {% if item.user_rating %}
-          Your rating: <strong>{{ item.user_rating }}/10</strong>
+          {{ t.detail_your_rating }} <strong>{{ item.user_rating }}/10</strong>
         {% else %}
-          Rate this title:
+          {{ t.detail_rate }}
         {% endif %}
       </p>
       <div class="stars" id="stars">
@@ -44,7 +42,7 @@
       <div class="rating-exact-row">
         <input type="number" id="rating-exact" min="1" max="10" step="0.5"
                value="{{ item.user_rating or '' }}" placeholder="e.g. 7.5">
-        <button class="btn btn-sm" id="save-btn">Save</button>
+        <button class="btn btn-sm" id="save-btn">{{ t.detail_save }}</button>
       </div>
       <p class="rating-hint" id="rating-hint"></p>
     </div>
@@ -55,6 +53,10 @@
 {% block scripts %}
 <script>
 const contentId = {{ item.id }};
+const msgError  = {{ t.detail_hint_error | tojson }};
+const msgSaved  = {{ t.detail_saved | tojson }};
+const labelYour = {{ t.detail_your_rating | tojson }};
+
 const stars = document.querySelectorAll('.star');
 const hint = document.getElementById('rating-hint');
 const exactInput = document.getElementById('rating-exact');
@@ -83,7 +85,7 @@ stars.forEach(star => {
 saveBtn.addEventListener('click', async () => {
   const val = parseFloat(exactInput.value);
   if (isNaN(val) || val < 1 || val > 10) {
-    hint.textContent = 'Enter a value between 1 and 10';
+    hint.textContent = msgError;
     return;
   }
   const resp = await fetch('/rate', {
@@ -93,9 +95,9 @@ saveBtn.addEventListener('click', async () => {
   });
   if (resp.ok) {
     updateStars(val);
-    hint.textContent = 'Saved!';
+    hint.textContent = msgSaved;
     document.getElementById('rating-label').innerHTML =
-      'Your rating: <strong>' + val + '/10</strong>';
+      labelYour + ' <strong>' + val + '/10</strong>';
   }
 });
 </script>

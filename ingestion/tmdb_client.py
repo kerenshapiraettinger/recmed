@@ -100,13 +100,14 @@ def fetch_imdb_id(tmdb_id, content_type="movie"):
     except Exception:
         return None
 
-def search_tmdb(query, content_type=None):
+def search_tmdb(query, content_type=None, language='en'):
     """Search TMDB for movies and/or series by title."""
     results = []
     types = ["movie", "tv"] if content_type is None else [content_type]
+    lang_code = 'he-IL' if language == 'he' else 'en-US'
     for ctype in types:
         endpoint = "/search/movie" if ctype == "movie" else "/search/tv"
-        data = _get(endpoint, {"query": query})
+        data = _get(endpoint, {"query": query, "language": lang_code})
         for item in data.get("results", [])[:5]:
             poster_path = item.get("poster_path")
             raw_year = item.get("release_date") or item.get("first_air_date", "")
