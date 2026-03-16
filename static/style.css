@@ -122,6 +122,9 @@ a { color: inherit; text-decoration: none; }
 .profile-name { font-size: 1.1rem; font-weight: 600; }
 
 .profile-card-link { display: flex; flex-direction: column; align-items: center; gap: .75rem; }
+.add-user-card { border-style: dashed; }
+.add-user-form { display: flex; flex-direction: column; align-items: center; gap: .75rem; }
+.add-user-avatar { background: var(--surface2); color: var(--muted); font-size: 2.5rem; }
 .rename-form { display: flex; gap: .4rem; margin-top: .5rem; }
 .rename-input {
   background: var(--surface2);

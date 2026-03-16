@@ -41,6 +41,9 @@ EN = {
     'detail_hint_error': 'Enter a value between 1 and 10',
     'detail_saved': 'Saved!',
 
+    'add_user': 'Add User',
+    'add_user_placeholder': 'Enter name…',
+
     'badge_movie': 'movie',
     'badge_series': 'series',
     'you_rated': 'You:',
@@ -88,6 +91,9 @@ HE = {
     'detail_save': 'שמור',
     'detail_hint_error': 'הכנס ערך בין 1 ל-10',
     'detail_saved': 'נשמר!',
+
+    'add_user': 'הוסף משתמש',
+    'add_user_placeholder': 'הכנס שם…',
 
     'badge_movie': 'סרט',
     'badge_series': 'סדרה',

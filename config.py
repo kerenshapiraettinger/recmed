@@ -21,4 +21,6 @@ PROFILES = {
     4: os.getenv("PROFILE_4_NAME", "User 4"),
     5: os.getenv("PROFILE_5_NAME", "User 5"),
     6: os.getenv("PROFILE_6_NAME", "User 6"),
+    7: os.getenv("PROFILE_7_NAME", "User 7"),
+    8: os.getenv("PROFILE_8_NAME", "User 8"),
 }

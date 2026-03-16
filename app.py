@@ -42,11 +42,10 @@ def localize(item, lang):
 
 def current_profile():
     pid = session.get("profile_id")
-    if pid not in config.PROFILES:
+    if not pid:
         return None
-    row = query("SELECT name FROM profiles WHERE id = ?", (pid,), one=True)
-    name = row["name"] if row else config.PROFILES[pid]
-    return {"id": pid, "name": name}
+    row = query("SELECT id, name FROM profiles WHERE id = ?", (pid,), one=True)
+    return {"id": row["id"], "name": row["name"]} if row else None
 
 def require_profile():
     p = current_profile()
@@ -75,21 +74,29 @@ def set_lang(lang):
 
 @app.route("/profile/<int:pid>/rename", methods=["POST"])
 def rename_profile(pid):
-    if pid not in config.PROFILES:
+    if not query("SELECT id FROM profiles WHERE id = ?", (pid,), one=True):
         abort(404)
     name = request.form.get("name", "").strip()
     if name:
         execute("UPDATE profiles SET name = ? WHERE id = ?", (name, pid))
-        if session.get("profile_id") == pid:
-            pass  # current_profile() will re-read from DB on next request
     return redirect(url_for("index"))
 
 
 @app.route("/profile/<int:pid>")
 def set_profile(pid):
-    if pid not in config.PROFILES:
+    if not query("SELECT id FROM profiles WHERE id = ?", (pid,), one=True):
         return redirect(url_for("index"))
     session["profile_id"] = pid
+    return redirect(url_for("recommendations"))
+
+
+@app.route("/profile/add", methods=["POST"])
+def add_profile():
+    name = request.form.get("name", "").strip() or "New User"
+    row = query("SELECT MAX(id) AS m FROM profiles", one=True)
+    new_id = (row["m"] or 0) + 1
+    execute("INSERT INTO profiles (id, name) VALUES (?, ?)", (new_id, name))
+    session["profile_id"] = new_id
     return redirect(url_for("recommendations"))
 
 

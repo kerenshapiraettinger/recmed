@@ -20,6 +20,17 @@
       </form>
     </div>
     {% endfor %}
+
+    {# Add User card #}
+    <div class="profile-card add-user-card">
+      <form method="post" action="{{ url_for('add_profile') }}" class="add-user-form">
+        <div class="profile-avatar add-user-avatar">+</div>
+        <input class="rename-input" type="text" name="name"
+               placeholder="{{ t.add_user_placeholder }}" maxlength="30" required>
+        <button class="btn btn-sm" type="submit">{{ t.add_user }}</button>
+      </form>
+    </div>
+
   </div>
 </div>
 {% endblock %}
