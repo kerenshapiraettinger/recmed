@@ -285,11 +285,9 @@ def admin_refresh():
     secret = request.args.get("secret", "")
     if secret != config.ADMIN_SECRET:
         abort(403)
-    try:
-        run_refresh()
-        return "Refresh complete. <a href='/'>Home</a>"
-    except Exception as e:
-        return f"Refresh failed: {e}", 500
+    t = threading.Thread(target=run_refresh, daemon=True)
+    t.start()
+    return "Refresh started in background. Check <a href='/admin/status?secret=" + config.ADMIN_SECRET + "'>status</a> for progress."
 
 
 @app.route("/admin/status")
