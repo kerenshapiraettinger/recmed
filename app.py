@@ -71,15 +71,38 @@ def recommendations():
     profile = current_profile()
     if not profile:
         return redirect(url_for("index"))
-    recs = get_recommendations(profile["id"])
+
+    genre_filter = request.args.get("genre", "").strip()
+
+    all_recs = get_recommendations(profile["id"], limit=100)
     insights = get_genre_insights(profile["id"])
-    for item in recs:
+    for item in all_recs:
         try:
             item["genres_list"] = json.loads(item["genres"])
         except Exception:
             item["genres_list"] = []
+
+    # Collect genres that actually appear in recs (preserving ranking order)
+    seen_genres = set()
+    all_genres = []
+    for item in all_recs:
+        for g in item["genres_list"]:
+            if g not in seen_genres:
+                all_genres.append(g)
+                seen_genres.add(g)
+
+    if genre_filter:
+        grouped = {genre_filter: [i for i in all_recs if genre_filter in i["genres_list"]]}
+    else:
+        grouped = {}
+        for item in all_recs:
+            primary = item["genres_list"][0] if item["genres_list"] else "Other"
+            grouped.setdefault(primary, []).append(item)
+
     return render_template("recommendations.html",
-                           profile=profile, recs=recs, insights=insights)
+                           profile=profile, grouped=grouped,
+                           all_genres=all_genres, genre_filter=genre_filter,
+                           insights=insights)
 
 
 @app.route("/watched")

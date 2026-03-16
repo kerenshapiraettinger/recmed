@@ -17,32 +17,48 @@
 </div>
 {% endif %}
 
-{% if recs %}
-<div class="card-grid">
-  {% for item in recs %}
-  <a class="card" href="{{ url_for('title_detail', content_id=item.id) }}">
-    {% if item.poster_url %}
-    <img class="card-poster" src="{{ item.poster_url }}" alt="{{ item.title }}" loading="lazy">
-    {% else %}
-    <div class="card-poster card-no-poster">{{ item.title[0] }}</div>
-    {% endif %}
-    <div class="card-body">
-      <div class="card-title">{{ item.title }}</div>
-      <div class="card-meta">
-        <span class="badge badge-type">{{ item.content_type }}</span>
-        <span class="imdb-score">★ {{ item.imdb_rating }}</span>
-        <span class="year">{{ item.release_year }}</span>
-      </div>
-      {% if item.plot %}<p class="card-plot">{{ item.plot }}</p>{% endif %}
-      <div class="card-genres">
-        {% for g in item.genres_list[:3] %}
-        <span class="genre-pill">{{ g }}</span>
-        {% endfor %}
-      </div>
-    </div>
-  </a>
+{% if all_genres %}
+<div class="genre-filter-bar">
+  <a class="genre-btn {% if not genre_filter %}genre-btn-active{% endif %}"
+     href="{{ url_for('recommendations') }}">All</a>
+  {% for g in all_genres %}
+  <a class="genre-btn {% if genre_filter == g %}genre-btn-active{% endif %}"
+     href="{{ url_for('recommendations', genre=g) }}">{{ g }}</a>
   {% endfor %}
 </div>
+{% endif %}
+
+{% if grouped %}
+  {% for genre, items in grouped.items() %}
+  <div class="genre-section">
+    <h3 class="genre-section-title">{{ genre }}</h3>
+    <div class="card-grid">
+      {% for item in items %}
+      <a class="card" href="{{ url_for('title_detail', content_id=item.id) }}">
+        {% if item.poster_url %}
+        <img class="card-poster" src="{{ item.poster_url }}" alt="{{ item.title }}" loading="lazy">
+        {% else %}
+        <div class="card-poster card-no-poster">{{ item.title[0] }}</div>
+        {% endif %}
+        <div class="card-body">
+          <div class="card-title">{{ item.title }}</div>
+          <div class="card-meta">
+            <span class="badge badge-type">{{ item.content_type }}</span>
+            <span class="imdb-score">★ {{ item.imdb_rating }}</span>
+            <span class="year">{{ item.release_year }}</span>
+          </div>
+          {% if item.plot %}<p class="card-plot">{{ item.plot }}</p>{% endif %}
+          <div class="card-genres">
+            {% for g in item.genres_list[:3] %}
+            <span class="genre-pill">{{ g }}</span>
+            {% endfor %}
+          </div>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
 {% else %}
 <div class="empty-state">
   <p>No recommendations yet.</p>

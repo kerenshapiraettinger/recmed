@@ -332,6 +332,36 @@ a { color: inherit; text-decoration: none; }
 }
 .rating-exact-row input:focus { outline: none; border-color: var(--accent); }
 
+/* ── Genre filter bar (recommendations) ──────────────────────────────────── */
+.genre-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+  margin-bottom: 1.75rem;
+}
+.genre-btn {
+  padding: .3rem .75rem;
+  border-radius: 20px;
+  font-size: .8rem;
+  font-weight: 600;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  transition: background .15s, color .15s, border-color .15s;
+}
+.genre-btn:hover { background: var(--surface2); color: var(--text); border-color: var(--accent); }
+.genre-btn-active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+.genre-section { margin-bottom: 2.5rem; }
+.genre-section-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--accent2);
+  margin-bottom: .9rem;
+  padding-bottom: .4rem;
+  border-bottom: 1px solid var(--border);
+}
+
 /* ── Browse filters ───────────────────────────────────────────────────────── */
 .filter-form {
   display: flex; gap: .5rem; flex-wrap: wrap; align-items: center;
