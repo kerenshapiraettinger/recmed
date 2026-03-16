@@ -44,6 +44,12 @@ def init_db():
             for stmt in [s.strip() for s in schema.split(";") if s.strip()]:
                 cur.execute(stmt)
             conn.commit()
+            # Migrate rating column to REAL if it's still INTEGER
+            try:
+                cur.execute("ALTER TABLE ratings ALTER COLUMN rating TYPE REAL USING rating::real")
+                conn.commit()
+            except Exception:
+                conn.rollback()
             for pid, name in config.PROFILES.items():
                 cur.execute("UPDATE profiles SET name = %s WHERE id = %s", (name, pid))
             conn.commit()

@@ -48,13 +48,11 @@
           <input type="hidden" name="release_year"  value="{{ item.release_year }}">
           <input type="hidden" name="imdb_rating"   value="{{ (item.imdb_rating * 10)|int }}">
           <input type="hidden" name="poster_url"    value="{{ item.poster_url or '' }}">
-          <div class="inline-stars" data-form-id="{{ loop.index }}">
-            {% for i in range(1, 11) %}
-            <span class="star" data-val="{{ i }}">★</span>
-            {% endfor %}
+          <div class="inline-number-rate">
+            <input type="number" name="user_rating" class="rating-val"
+                   min="1" max="10" step="0.5" placeholder="1–10">
+            <button class="btn btn-sm" type="submit">Save</button>
           </div>
-          <input type="hidden" name="user_rating" class="rating-val" value="">
-          <button class="btn btn-sm save-btn" type="submit" disabled>Save rating</button>
         </form>
       {% endif %}
     </div>
@@ -64,26 +62,4 @@
 {% endif %}
 {% endblock %}
 
-{% block scripts %}
-<script>
-document.querySelectorAll('.inline-stars').forEach(widget => {
-  const stars = widget.querySelectorAll('.star');
-  const form  = widget.closest('form');
-  const input = form.querySelector('.rating-val');
-
-  stars.forEach(star => {
-    star.addEventListener('mouseenter', () => {
-      const val = parseInt(star.dataset.val);
-      stars.forEach(s => s.classList.toggle('hover', parseInt(s.dataset.val) <= val));
-    });
-    star.addEventListener('mouseleave', () => stars.forEach(s => s.classList.remove('hover')));
-    star.addEventListener('click', () => {
-      const val = parseInt(star.dataset.val);
-      input.value = val;
-      stars.forEach(s => s.classList.toggle('filled', parseInt(s.dataset.val) <= val));
-      form.querySelector('.save-btn').disabled = false;
-    });
-  });
-});
-</script>
 {% endblock %}

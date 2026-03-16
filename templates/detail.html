@@ -28,18 +28,23 @@
     {% endif %}
 
     <div class="rating-widget">
-      <p class="rating-label">
+      <p class="rating-label" id="rating-label">
         {% if item.user_rating %}
           Your rating: <strong>{{ item.user_rating }}/10</strong>
         {% else %}
           Rate this title:
         {% endif %}
       </p>
-      <div class="stars" id="stars" data-current="{{ item.user_rating or 0 }}">
+      <div class="stars" id="stars">
         {% for i in range(1, 11) %}
         <span class="star {% if item.user_rating and i <= item.user_rating %}filled{% endif %}"
               data-val="{{ i }}">★</span>
         {% endfor %}
+      </div>
+      <div class="rating-exact-row">
+        <input type="number" id="rating-exact" min="1" max="10" step="0.5"
+               value="{{ item.user_rating or '' }}" placeholder="e.g. 7.5">
+        <button class="btn btn-sm" id="save-btn">Save</button>
       </div>
       <p class="rating-hint" id="rating-hint"></p>
     </div>
@@ -52,6 +57,13 @@
 const contentId = {{ item.id }};
 const stars = document.querySelectorAll('.star');
 const hint = document.getElementById('rating-hint');
+const exactInput = document.getElementById('rating-exact');
+const saveBtn = document.getElementById('save-btn');
+
+function updateStars(val) {
+  const whole = Math.floor(val);
+  stars.forEach(s => s.classList.toggle('filled', parseInt(s.dataset.val) <= whole));
+}
 
 stars.forEach(star => {
   star.addEventListener('mouseenter', () => {
@@ -63,20 +75,28 @@ stars.forEach(star => {
     stars.forEach(s => s.classList.remove('hover'));
     hint.textContent = '';
   });
-  star.addEventListener('click', async () => {
-    const val = parseInt(star.dataset.val);
-    const resp = await fetch('/rate', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({content_id: contentId, rating: val})
-    });
-    if (resp.ok) {
-      stars.forEach(s => s.classList.toggle('filled', parseInt(s.dataset.val) <= val));
-      hint.textContent = 'Saved!';
-      document.querySelector('.rating-label').innerHTML =
-        'Your rating: <strong>' + val + '/10</strong>';
-    }
+  star.addEventListener('click', () => {
+    exactInput.value = parseInt(star.dataset.val);
   });
+});
+
+saveBtn.addEventListener('click', async () => {
+  const val = parseFloat(exactInput.value);
+  if (isNaN(val) || val < 1 || val > 10) {
+    hint.textContent = 'Enter a value between 1 and 10';
+    return;
+  }
+  const resp = await fetch('/rate', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({content_id: contentId, rating: val})
+  });
+  if (resp.ok) {
+    updateStars(val);
+    hint.textContent = 'Saved!';
+    document.getElementById('rating-label').innerHTML =
+      'Your rating: <strong>' + val + '/10</strong>';
+  }
 });
 </script>
 {% endblock %}

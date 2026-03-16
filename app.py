@@ -238,7 +238,7 @@ def add_from_search():
     user_rating_raw = request.form.get("user_rating", "").strip()
     if not user_rating_raw:
         return redirect(url_for("search", q=title))
-    user_rating = int(user_rating_raw)
+    user_rating = round(float(user_rating_raw), 1)
 
     today = datetime.utcnow().date().isoformat()
 
@@ -273,7 +273,7 @@ def rate():
 
     data = request.get_json()
     content_id  = int(data["content_id"])
-    user_rating = int(data["rating"])
+    user_rating = float(data["rating"])
 
     if not (1 <= user_rating <= 10):
         return jsonify({"error": "rating must be 1-10"}), 400

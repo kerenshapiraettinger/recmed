@@ -27,7 +27,7 @@ INSERT OR IGNORE INTO profiles VALUES (6, 'User 6');
 CREATE TABLE IF NOT EXISTS ratings (
     profile_id  INTEGER NOT NULL REFERENCES profiles(id),
     content_id  INTEGER NOT NULL REFERENCES content(id),
-    rating      INTEGER NOT NULL CHECK(rating BETWEEN 1 AND 10),
+    rating      REAL NOT NULL CHECK(rating BETWEEN 1 AND 10),
     rated_at    TEXT NOT NULL,
     PRIMARY KEY (profile_id, content_id)
 );
