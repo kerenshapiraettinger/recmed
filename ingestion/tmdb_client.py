@@ -79,6 +79,7 @@ def discover(content_type="movie", genre_map=None):
                 "imdb_rating": round(item.get("vote_average", 0), 1),
                 "genres": json.dumps(genres),
                 "poster_url": POSTER_BASE + poster_path if poster_path else None,
+                "plot": item.get("overview", ""),
                 "last_refreshed": today.isoformat(),
             }
 

@@ -31,19 +31,22 @@ def run_refresh():
             if existing:
                 execute(
                     """UPDATE content SET title=?, imdb_rating=?, genres=?,
-                       poster_url=?, last_refreshed=? WHERE tmdb_id=?""",
+                       poster_url=?, last_refreshed=?,
+                       plot=COALESCE(NULLIF(plot,''), ?)
+                       WHERE tmdb_id=?""",
                     (item["title"], item["imdb_rating"], item["genres"],
-                     item["poster_url"], item["last_refreshed"], item["tmdb_id"])
+                     item["poster_url"], item["last_refreshed"],
+                     item.get("plot", ""), item["tmdb_id"])
                 )
             else:
                 execute(
                     """INSERT INTO content
                        (tmdb_id, title, content_type, release_year, imdb_rating,
-                        genres, poster_url, last_refreshed)
-                       VALUES (?,?,?,?,?,?,?,?)""",
+                        genres, poster_url, plot, last_refreshed)
+                       VALUES (?,?,?,?,?,?,?,?,?)""",
                     (item["tmdb_id"], item["title"], item["content_type"],
                      item["release_year"], item["imdb_rating"], item["genres"],
-                     item["poster_url"], item["last_refreshed"])
+                     item["poster_url"], item.get("plot", ""), item["last_refreshed"])
                 )
                 added += 1
 
