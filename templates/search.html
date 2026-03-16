@@ -54,7 +54,7 @@
             {% endfor %}
           </div>
           <input type="hidden" name="user_rating" class="rating-val" value="">
-          <button class="btn btn-sm" type="submit">Save rating</button>
+          <button class="btn btn-sm save-btn" type="submit" disabled>Save rating</button>
         </form>
       {% endif %}
     </div>
@@ -81,6 +81,7 @@ document.querySelectorAll('.inline-stars').forEach(widget => {
       const val = parseInt(star.dataset.val);
       input.value = val;
       stars.forEach(s => s.classList.toggle('filled', parseInt(s.dataset.val) <= val));
+      form.querySelector('.save-btn').disabled = false;
     });
   });
 });

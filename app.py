@@ -235,7 +235,10 @@ def add_from_search():
     year       = int(request.form.get("release_year", 0))
     rating_val = int(request.form.get("imdb_rating", 0) or 0)
     poster     = request.form.get("poster_url", "")
-    user_rating = int(request.form["user_rating"])
+    user_rating_raw = request.form.get("user_rating", "").strip()
+    if not user_rating_raw:
+        return redirect(url_for("search", q=title))
+    user_rating = int(user_rating_raw)
 
     today = datetime.utcnow().date().isoformat()
 

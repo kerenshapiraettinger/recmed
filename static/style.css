@@ -83,6 +83,7 @@ a { color: inherit; text-decoration: none; }
   transition: background .15s;
 }
 .btn:hover { background: var(--accent2); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .btn-sm { padding: .35rem .75rem; font-size: .8rem; }
 
 /* ── Hero / profile select ────────────────────────────────────────────────── */
