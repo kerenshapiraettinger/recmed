@@ -96,17 +96,28 @@ def recommendations():
         except Exception:
             item["genres_list"] = []
 
-    # Collect genres that actually appear in recs (preserving ranking order)
-    seen_genres = set()
-    all_genres = []
-    for item in all_recs:
-        for g in item["genres_list"]:
-            if g not in seen_genres:
-                all_genres.append(g)
-                seen_genres.add(g)
+    # All genres from the full content DB so every genre is always available
+    all_genres = sorted({
+        g
+        for row in query("SELECT genres FROM content")
+        for g in json.loads(row["genres"] or "[]")
+    })
 
     if genre_filter:
-        grouped = {genre_filter: [i for i in all_recs if genre_filter in i["genres_list"]]}
+        # Filter from recs first; if empty, fall back to full DB for that genre
+        filtered = [i for i in all_recs if genre_filter in i["genres_list"]]
+        if not filtered:
+            db_items = query(
+                "SELECT * FROM content WHERE genres LIKE ? ORDER BY imdb_rating DESC LIMIT 50",
+                (f'%{genre_filter}%',)
+            )
+            filtered = [dict(i) for i in db_items]
+            for item in filtered:
+                try:
+                    item["genres_list"] = json.loads(item["genres"])
+                except Exception:
+                    item["genres_list"] = []
+        grouped = {genre_filter: filtered}
     else:
         grouped = {}
         for item in all_recs:
