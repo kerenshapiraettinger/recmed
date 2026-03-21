@@ -492,10 +492,13 @@ def _refresh_loop():
 
 # ── startup ───────────────────────────────────────────────────────────────────
 
-# Runs on every startup (python app.py AND gunicorn)
-init_db()
-t = threading.Thread(target=_refresh_loop, daemon=True)
-t.start()
+def _startup():
+    """Run DB init then the refresh loop. Runs in a background thread so
+    gunicorn workers can start serving health-check requests immediately."""
+    init_db()
+    _refresh_loop()
+
+threading.Thread(target=_startup, daemon=True).start()
 
 if __name__ == "__main__":
     app.run(debug=False, port=5000)

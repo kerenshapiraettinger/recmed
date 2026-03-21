@@ -15,7 +15,8 @@ def _adapt(sql):
 def _pg_conn():
     import psycopg2
     import psycopg2.extras
-    return psycopg2.connect(DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
+    return psycopg2.connect(DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor,
+                            connect_timeout=30)
 
 
 def _sqlite_conn():
