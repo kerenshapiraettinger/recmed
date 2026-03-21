@@ -456,13 +456,23 @@ def admin_providers_debug():
         try:
             data = _get(path)
             il = data.get("results", {}).get("IL", {})
-            flatrate = [p["provider_name"] for p in il.get("flatrate", [])]
-            results.append({"title": row["title"], "providers": flatrate})
+            all_providers = {}
+            for category in ("flatrate", "free", "ads", "buy", "rent"):
+                for p in il.get(category, []):
+                    name = p.get("provider_name", "")
+                    if name:
+                        all_providers.setdefault(name, set()).add(category)
+            results.append({"title": row["title"], "providers": {k: sorted(v) for k, v in all_providers.items()}})
         except Exception as e:
-            results.append({"title": row["title"], "providers": [f"error: {e}"]})
-    output = "<h2>Raw IL providers (first 20 titles)</h2><table border=1 cellpadding=4>"
+            results.append({"title": row["title"], "providers": {f"error: {e}": []}})
+    output = "<h2>Raw IL providers — all categories (first 20 titles)</h2><table border=1 cellpadding=4>"
+    output += "<tr><th>Title</th><th>Provider</th><th>Category</th></tr>"
     for r in results:
-        output += f"<tr><td>{r['title']}</td><td>{', '.join(r['providers']) or '—'}</td></tr>"
+        if r["providers"]:
+            for name, cats in r["providers"].items():
+                output += f"<tr><td>{r['title']}</td><td>{name}</td><td>{', '.join(cats)}</td></tr>"
+        else:
+            output += f"<tr><td>{r['title']}</td><td colspan=2>—</td></tr>"
     output += "</table>"
     return output
 

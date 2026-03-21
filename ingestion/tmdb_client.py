@@ -113,14 +113,22 @@ def get_title_he(tmdb_id, content_type="movie"):
         return "", ""
 
 def get_watch_providers(tmdb_id, content_type="movie"):
-    """Return all flatrate streaming provider names available in Israel."""
+    """Return flatrate and free streaming provider names available in Israel."""
     path = (f"/movie/{tmdb_id}/watch/providers"
             if content_type == "movie"
             else f"/tv/{tmdb_id}/watch/providers")
     try:
         data = _get(path)
-        flatrate = data.get("results", {}).get("IL", {}).get("flatrate", [])
-        return [p["provider_name"] for p in flatrate if p.get("provider_name")]
+        il = data.get("results", {}).get("IL", {})
+        seen = set()
+        providers = []
+        for category in ("flatrate", "free"):
+            for p in il.get(category, []):
+                name = p.get("provider_name", "")
+                if name and name not in seen:
+                    seen.add(name)
+                    providers.append(name)
+        return providers
     except Exception:
         return []
 
