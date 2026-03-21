@@ -422,9 +422,23 @@ def admin_status():
     streaming_samples = query(
         "SELECT title, streaming FROM content WHERE streaming IS NOT NULL AND streaming != '[]' LIMIT 10"
     )
+    # Count all unique provider names across all titles
+    all_streaming_rows = query(
+        "SELECT streaming FROM content WHERE streaming IS NOT NULL AND streaming != '[]'"
+    )
+    provider_counts = {}
+    for row in all_streaming_rows:
+        try:
+            for p in json.loads(row["streaming"]):
+                provider_counts[p] = provider_counts.get(p, 0) + 1
+        except Exception:
+            pass
+    provider_counts = sorted(provider_counts.items(), key=lambda x: x[1], reverse=True)
+
     return render_template("admin_status.html", logs=logs, total=total,
                            streaming_count=streaming_count,
                            streaming_samples=streaming_samples,
+                           provider_counts=provider_counts,
                            admin_secret=config.ADMIN_SECRET)
 
 

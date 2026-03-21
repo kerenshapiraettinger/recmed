@@ -16,6 +16,18 @@
   </a>
 </p>
 
+{% if provider_counts %}
+<h3>All providers found in Israel (IL)</h3>
+<table class="admin-table">
+  <thead><tr><th>Provider name</th><th>Titles</th></tr></thead>
+  <tbody>
+    {% for name, count in provider_counts %}
+    <tr><td>{{ name }}</td><td>{{ count }}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
 {% if streaming_samples %}
 <h3>Sample streaming data</h3>
 <table class="admin-table">
