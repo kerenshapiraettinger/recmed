@@ -103,13 +103,21 @@ def run_refresh():
 
 def run_streaming_refresh():
     """Slowly update streaming availability for all titles. Runs after main refresh."""
+    from ingestion.kan11_client import match_kan11
+
     print("[streaming] Starting streaming provider update...")
-    titles = query("SELECT id, tmdb_id, content_type FROM content ORDER BY id")
+    titles = query("SELECT id, tmdb_id, content_type, title_he FROM content ORDER BY id")
+
+    # Fetch Kan 11 matches up front (one page scrape)
+    kan11_ids = match_kan11([(r["id"], r["title_he"]) for r in titles])
+
     updated = 0
     for row in titles:
         try:
             ctype_api = "movie" if row["content_type"] == "movie" else "tv"
             providers = get_watch_providers(row["tmdb_id"], ctype_api)
+            if row["id"] in kan11_ids and "Kan 11" not in providers:
+                providers.append("Kan 11")
             execute(
                 "UPDATE content SET streaming=? WHERE id=?",
                 (json.dumps(providers), row["id"])
@@ -117,5 +125,5 @@ def run_streaming_refresh():
             updated += 1
         except Exception as e:
             print(f"[streaming] Error for id {row['id']}: {e}")
-        time.sleep(0.25)  # 4 requests/sec — well within TMDB limits, low server load
+        time.sleep(0.25)
     print(f"[streaming] Done — updated {updated} titles")
