@@ -102,19 +102,14 @@ def fetch_imdb_id(tmdb_id, content_type="movie"):
         return None
 
 def get_watch_providers(tmdb_id, content_type="movie"):
-    """Return streaming provider names available in Israel (Netflix / Cellcom only)."""
+    """Return all flatrate streaming provider names available in Israel."""
     path = (f"/movie/{tmdb_id}/watch/providers"
             if content_type == "movie"
             else f"/tv/{tmdb_id}/watch/providers")
     try:
         data = _get(path)
         flatrate = data.get("results", {}).get("IL", {}).get("flatrate", [])
-        providers = []
-        for p in flatrate:
-            name = p.get("provider_name", "")
-            if "Netflix" in name or "Cellcom" in name:
-                providers.append(name)
-        return providers
+        return [p["provider_name"] for p in flatrate if p.get("provider_name")]
     except Exception:
         return []
 

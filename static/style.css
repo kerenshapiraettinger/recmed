@@ -479,6 +479,10 @@ a { color: inherit; text-decoration: none; }
   background: #e50914;
   color: #fff;
 }
+.streaming-crunchyroll {
+  background: #f47521;
+  color: #fff;
+}
 .streaming-cellcom-tv {
   background: #00b4d8;
   color: #fff;
