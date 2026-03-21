@@ -69,7 +69,12 @@ def rebuild_affinity(profile_id):
 
 
 def get_recommendations(profile_id, limit=20):
-    # Load all rated titles with content details for building signals
+    """
+    Returns {'imdb': [...], 'seret': [...]} — two ranked lists.
+    IMDb list: all unrated titles scored using imdb_rating.
+    Seret list: only titles with seret_rating >= 7 from last 5 years,
+                scored using seret_rating instead of imdb_rating.
+    """
     rating_rows = query(
         """SELECT r.rating, r.content_id, c.imdb_rating, c.genres, c.plot, c.director
            FROM ratings r
@@ -87,7 +92,6 @@ def get_recommendations(profile_id, limit=20):
     else:
         w_genre, w_kw, w_dir, w_imdb = 0.45, 0.30, 0.10, 0.15
 
-    # Genre affinity from pre-computed table
     affinity_rows = query(
         "SELECT genre, score FROM genre_affinity WHERE profile_id = ?", (profile_id,)
     )
@@ -99,27 +103,25 @@ def get_recommendations(profile_id, limit=20):
         "SELECT DISTINCT content_id FROM ratings"
     )}
 
-    # Build keyword affinity from rated titles' plots
+    # Keyword affinity from rated plots (threshold: 3+ rated titles)
     kw_deltas = {}
     for row in rating_rows:
         delta = row["rating"] - (row["imdb_rating"] or 7.0)
         for kw in set(_keywords(row["plot"] or "")):
             kw_deltas.setdefault(kw, []).append(delta)
-    # Keyword must appear in plots of 3+ rated titles to count
     kw_affinity = {
         kw: (sum(d) / len(d)) * math.log1p(len(d))
         for kw, d in kw_deltas.items()
         if len(d) >= 3
     }
 
-    # Build director affinity from rated titles
+    # Director affinity (threshold: 2+ rated titles)
     dir_deltas = {}
     for row in rating_rows:
         director = (row.get("director") or "").strip()
         if director:
             delta = row["rating"] - (row["imdb_rating"] or 7.0)
             dir_deltas.setdefault(director, []).append(delta)
-    # Director must appear in 2+ rated titles to count
     dir_affinity = {
         d: (sum(v) / len(v)) * math.log1p(len(v))
         for d, v in dir_deltas.items()
@@ -129,7 +131,11 @@ def get_recommendations(profile_id, limit=20):
     all_content = query("SELECT * FROM content ORDER BY imdb_rating DESC")
 
     current_year = date.today().year
-    scored = []
+    seret_min_year = current_year - 5
+
+    imdb_scored = []
+    seret_scored = []
+
     for item in all_content:
         if item["id"] in rated_ids:
             continue
@@ -152,21 +158,39 @@ def get_recommendations(profile_id, limit=20):
             if director:
                 dir_score = dir_affinity.get(director, 0)
 
-        imdb_bonus = (item["imdb_rating"] or 0) if item["id"] in any_rated_ids else 0
-
         age_penalty = 0.1 * max(0, current_year - item["release_year"])
 
-        score = (
+        # IMDb-based score
+        imdb_bonus = (item["imdb_rating"] or 0) if item["id"] in any_rated_ids else 0
+        imdb_score = (
             w_genre * genre_score
             + w_kw * kw_score
             + w_dir * dir_score
             + w_imdb * imdb_bonus
             - age_penalty
         )
-        scored.append((score, item))
+        imdb_scored.append((imdb_score, item))
 
-    scored.sort(key=lambda x: x[0], reverse=True)
-    return [item for _, item in scored[:limit]]
+        # Seret-based score: only titles with seret_rating >= 7 from last 5 years
+        seret_rating = item.get("seret_rating")
+        if seret_rating and seret_rating >= 7.0 and (item.get("release_year") or 0) >= seret_min_year:
+            seret_bonus = seret_rating if item["id"] in any_rated_ids else 0
+            seret_score = (
+                w_genre * genre_score
+                + w_kw * kw_score
+                + w_dir * dir_score
+                + w_imdb * seret_bonus
+                - age_penalty
+            )
+            seret_scored.append((seret_score, item))
+
+    imdb_scored.sort(key=lambda x: x[0], reverse=True)
+    seret_scored.sort(key=lambda x: x[0], reverse=True)
+
+    return {
+        "imdb": [item for _, item in imdb_scored[:limit]],
+        "seret": [item for _, item in seret_scored[:limit]],
+    }
 
 
 def get_genre_insights(profile_id):

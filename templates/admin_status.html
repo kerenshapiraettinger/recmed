@@ -24,6 +24,11 @@
      style="background:#4a148c;color:#fff">
     Run director backfill
   </a>
+  &nbsp;
+  <a class="btn" href="{{ url_for('admin_seret_refresh', secret=admin_secret) }}"
+     style="background:#059b5c;color:#fff">
+    Run Seret refresh
+  </a>
 </p>
 
 {% if provider_counts %}

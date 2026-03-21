@@ -70,6 +70,13 @@ def init_db():
                 conn.commit()
             except Exception:
                 conn.rollback()
+            # Add seret columns if missing
+            for col, coltype in [("seret_id", "INTEGER"), ("seret_rating", "REAL"), ("seret_votes", "INTEGER")]:
+                try:
+                    cur.execute(f"ALTER TABLE content ADD COLUMN IF NOT EXISTS {col} {coltype}")
+                    conn.commit()
+                except Exception:
+                    conn.rollback()
             # Add avatar column if missing
             try:
                 cur.execute("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS avatar TEXT DEFAULT '🎬'")
@@ -100,6 +107,12 @@ def init_db():
             conn.commit()
         except Exception:
             pass
+        for col, coltype in [("seret_id", "INTEGER"), ("seret_rating", "REAL"), ("seret_votes", "INTEGER")]:
+            try:
+                conn.execute(f"ALTER TABLE content ADD COLUMN {col} {coltype}")
+                conn.commit()
+            except Exception:
+                pass
         try:
             conn.execute("ALTER TABLE profiles ADD COLUMN avatar TEXT DEFAULT '🎬'")
             conn.commit()

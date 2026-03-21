@@ -143,6 +143,37 @@ def run_backfill_director():
     print(f"[backfill_director] Done — updated {updated} titles")
 
 
+def run_seret_refresh():
+    """Fetch seret.co.il ratings for DB titles from the last 5 years."""
+    from ingestion.seret_client import find_seret_rating
+    from datetime import date
+    min_year = date.today().year - 5
+    rows = query(
+        """SELECT id, title_he, release_year FROM content
+           WHERE title_he IS NOT NULL AND title_he != ''
+           AND release_year >= ?""",
+        (min_year,)
+    )
+    print(f"[seret] Processing {len(rows)} titles from last 5 years")
+    updated = 0
+    for row in rows:
+        try:
+            seret_id, seret_rating, seret_votes = find_seret_rating(
+                row["title_he"], row["release_year"]
+            )
+            if seret_rating is not None:
+                execute(
+                    "UPDATE content SET seret_id=?, seret_rating=?, seret_votes=? WHERE id=?",
+                    (seret_id, seret_rating, seret_votes, row["id"])
+                )
+                updated += 1
+                print(f"[seret] {row['title_he']} → {seret_rating}/10 ({seret_votes} votes)")
+        except Exception as e:
+            print(f"[seret] Error for id {row['id']}: {e}")
+        time.sleep(0.3)
+    print(f"[seret] Done — found seret ratings for {updated} titles")
+
+
 def run_streaming_refresh():
     """Slowly update streaming availability for all titles. Runs after main refresh."""
     from ingestion.kan11_client import match_kan11

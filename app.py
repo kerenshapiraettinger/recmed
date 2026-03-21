@@ -12,7 +12,7 @@ from recommender.engine import (rebuild_affinity, get_recommendations,
                                 get_genre_insights, get_watched)
 from ingestion.tmdb_client import search_tmdb, fetch_imdb_id, get_title_he, get_watch_providers
 from ingestion.omdb_client import fetch_plot
-from ingestion.refresh import run_refresh, run_streaming_refresh, run_backfill_he, run_backfill_director
+from ingestion.refresh import run_refresh, run_streaming_refresh, run_backfill_he, run_backfill_director, run_seret_refresh
 from translations import TRANSLATIONS
 
 AVATARS = [
@@ -167,10 +167,9 @@ def recommendations():
     all_recs = get_recommendations(profile["id"], limit=100)
     insights = get_genre_insights(profile["id"])
 
-    # Localize and parse genres
-    all_recs = [enrich(localize(i, lang)) for i in all_recs]
+    imdb_recs  = [enrich(localize(i, lang)) for i in all_recs["imdb"]]
+    seret_recs = [enrich(localize(i, lang)) for i in all_recs["seret"]]
 
-    # Genre buttons: use Hebrew genres column when in Hebrew mode
     genres_col = "genres_he" if lang == "he" else "genres"
     all_genres = sorted({
         g
@@ -182,24 +181,24 @@ def recommendations():
     def streaming_first(items):
         return sorted(items, key=lambda x: (0 if x["streaming_list"] else 1))
 
-    if genre_filter:
-        filtered = [i for i in all_recs if genre_filter in i["genres_list"]]
-        if not filtered:
-            db_items = query(
-                f"SELECT * FROM content WHERE {genres_col} LIKE ? ORDER BY imdb_rating DESC LIMIT 50",
-                (f'%{genre_filter}%',)
-            )
-            filtered = [enrich(localize(dict(i), lang)) for i in db_items]
-        grouped = {genre_filter: streaming_first(filtered)}
-    else:
+    def group_by_genre(items):
         grouped = {}
-        for item in all_recs:
+        for item in items:
             primary = item["genres_list"][0] if item["genres_list"] else "Other"
             grouped.setdefault(primary, []).append(item)
-        grouped = {genre: streaming_first(items) for genre, items in grouped.items()}
+        return {genre: streaming_first(lst) for genre, lst in grouped.items()}
+
+    if genre_filter:
+        imdb_grouped  = {genre_filter: streaming_first([i for i in imdb_recs  if genre_filter in i["genres_list"]])}
+        seret_grouped = {genre_filter: streaming_first([i for i in seret_recs if genre_filter in i["genres_list"]])}
+    else:
+        imdb_grouped  = group_by_genre(imdb_recs)
+        seret_grouped = group_by_genre(seret_recs)
 
     return render_template("recommendations.html",
-                           profile=profile, grouped=grouped,
+                           profile=profile,
+                           imdb_grouped=imdb_grouped,
+                           seret_grouped=seret_grouped,
                            all_genres=all_genres, genre_filter=genre_filter,
                            insights=insights)
 
@@ -430,6 +429,16 @@ def admin_backfill_he():
     t = threading.Thread(target=run_backfill_he, daemon=True)
     t.start()
     return "Hebrew backfill started. Check <a href='/admin/status?secret=" + config.ADMIN_SECRET + "'>status</a> and server logs for progress."
+
+
+@app.route("/admin/seret_refresh")
+def admin_seret_refresh():
+    secret = request.args.get("secret", "")
+    if secret != config.ADMIN_SECRET:
+        abort(403)
+    t = threading.Thread(target=run_seret_refresh, daemon=True)
+    t.start()
+    return "Seret refresh started. Check <a href='/admin/status?secret=" + config.ADMIN_SECRET + "'>status</a> and server logs for progress."
 
 
 @app.route("/admin/backfill_director")

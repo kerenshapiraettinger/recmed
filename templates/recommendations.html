@@ -28,45 +28,78 @@
 </div>
 {% endif %}
 
-{% if grouped %}
-  {% for genre, items in grouped.items() %}
+{% macro render_card(item) %}
+<a class="card" href="{{ url_for('title_detail', content_id=item.id) }}">
+  {% if item.poster_url %}
+  <img class="card-poster" src="{{ item.poster_url }}" alt="{{ item.title }}" loading="lazy">
+  {% else %}
+  <div class="card-poster card-no-poster">{{ item.title[0] }}</div>
+  {% endif %}
+  <div class="card-body">
+    <div class="card-title">{{ item.title }}</div>
+    <div class="card-meta">
+      <span class="badge badge-type">{{ t.badge_movie if item.content_type == 'movie' else t.badge_series }}</span>
+      <span class="imdb-score">★ {{ item.imdb_rating }}</span>
+      {% if item.seret_rating %}<span class="seret-score">🎬 {{ item.seret_rating }}</span>{% endif %}
+      <span class="year">{{ item.release_year }}</span>
+    </div>
+    {% if item.plot %}<p class="card-plot">{{ item.plot }}</p>{% endif %}
+    <div class="card-genres">
+      {% for g in item.genres_list[:3] %}
+      <span class="genre-pill">{{ g }}</span>
+      {% endfor %}
+    </div>
+    {% if item.streaming_list %}
+    <div class="streaming-badges">
+      {% for s in item.streaming_list %}
+      <span class="streaming-badge streaming-{{ s | lower | replace(' ', '-') }}">{{ s }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</a>
+{% endmacro %}
+
+<!-- ── IMDb recommendations ─────────────────────────────────────────────── -->
+{% if imdb_grouped %}
+<div class="rec-section">
+  <div class="rec-section-header rec-section-imdb">
+    ★ IMDb Recommendations
+  </div>
+  {% for genre, items in imdb_grouped.items() %}
   <div class="genre-section">
     <h3 class="genre-section-title">{{ genre }}</h3>
     <div class="card-grid">
-      {% for item in items %}
-      <a class="card" href="{{ url_for('title_detail', content_id=item.id) }}">
-        {% if item.poster_url %}
-        <img class="card-poster" src="{{ item.poster_url }}" alt="{{ item.title }}" loading="lazy">
-        {% else %}
-        <div class="card-poster card-no-poster">{{ item.title[0] }}</div>
-        {% endif %}
-        <div class="card-body">
-          <div class="card-title">{{ item.title }}</div>
-          <div class="card-meta">
-            <span class="badge badge-type">{{ t.badge_movie if item.content_type == 'movie' else t.badge_series }}</span>
-            <span class="imdb-score">★ {{ item.imdb_rating }}</span>
-            <span class="year">{{ item.release_year }}</span>
-          </div>
-          {% if item.plot %}<p class="card-plot">{{ item.plot }}</p>{% endif %}
-          <div class="card-genres">
-            {% for g in item.genres_list[:3] %}
-            <span class="genre-pill">{{ g }}</span>
-            {% endfor %}
-          </div>
-          {% if item.streaming_list %}
-          <div class="streaming-badges">
-            {% for s in item.streaming_list %}
-            <span class="streaming-badge streaming-{{ s | lower | replace(' ', '-') }}">{{ s }}</span>
-            {% endfor %}
-          </div>
-          {% endif %}
-        </div>
-      </a>
-      {% endfor %}
+      {% for item in items %}{{ render_card(item) }}{% endfor %}
     </div>
   </div>
   {% endfor %}
-{% else %}
+</div>
+{% endif %}
+
+<!-- ── Seret recommendations ────────────────────────────────────────────── -->
+<div class="rec-section">
+  <div class="rec-section-header rec-section-seret">
+    🎬 Seret Recommendations
+    <span style="font-size:.8rem;font-weight:400;opacity:.75;">(Israeli ratings · last 5 years · 7+)</span>
+  </div>
+  {% if seret_grouped %}
+    {% for genre, items in seret_grouped.items() %}
+    <div class="genre-section">
+      <h3 class="genre-section-title seret-title">{{ genre }}</h3>
+      <div class="card-grid">
+        {% for item in items %}{{ render_card(item) }}{% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+  <div class="empty-state" style="padding:2rem">
+    <p>No seret ratings yet — run <strong>Seret Refresh</strong> from the admin page.</p>
+  </div>
+  {% endif %}
+</div>
+
+{% if not imdb_grouped and not seret_grouped %}
 <div class="empty-state">
   <p>{{ t.recs_empty }}</p>
   <p>{{ t.recs_empty_sub }}</p>

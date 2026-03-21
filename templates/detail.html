@@ -15,6 +15,7 @@
     <div class="detail-meta">
       <span class="badge badge-type">{{ t.badge_movie if item.content_type == 'movie' else t.badge_series }}</span>
       <span class="imdb-score">★ {{ item.imdb_rating }} IMDb</span>
+      {% if item.seret_rating %}<span class="seret-score">🎬 {{ item.seret_rating }} Seret</span>{% endif %}
       <span class="year">{{ item.release_year }}</span>
     </div>
     <div class="card-genres" style="margin-bottom:1rem">
