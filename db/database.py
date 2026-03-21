@@ -57,6 +57,12 @@ def init_db():
                     conn.commit()
                 except Exception:
                     conn.rollback()
+            # Add streaming column if missing
+            try:
+                cur.execute("ALTER TABLE content ADD COLUMN IF NOT EXISTS streaming TEXT DEFAULT '[]'")
+                conn.commit()
+            except Exception:
+                conn.rollback()
             # Add avatar column if missing
             try:
                 cur.execute("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS avatar TEXT DEFAULT '🎬'")
@@ -77,6 +83,11 @@ def init_db():
                 conn.commit()
             except Exception:
                 pass
+        try:
+            conn.execute("ALTER TABLE content ADD COLUMN streaming TEXT DEFAULT '[]'")
+            conn.commit()
+        except Exception:
+            pass
         try:
             conn.execute("ALTER TABLE profiles ADD COLUMN avatar TEXT DEFAULT '🎬'")
             conn.commit()

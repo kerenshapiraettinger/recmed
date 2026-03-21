@@ -3,9 +3,32 @@
 {% block content %}
 <h2>Admin Status</h2>
 <p>Content database: <strong>{{ total }}</strong> titles</p>
-<p><a class="btn" href="{{ url_for('admin_refresh', secret=admin_secret) }}">
-  Run refresh now
-</a></p>
+<p>Titles with streaming data: <strong>{{ streaming_count }}</strong></p>
+
+<p>
+  <a class="btn" href="{{ url_for('admin_refresh', secret=admin_secret) }}">
+    Run full refresh
+  </a>
+  &nbsp;
+  <a class="btn" href="{{ url_for('admin_refresh', secret=admin_secret, mode='streaming') }}"
+     style="background:var(--surface2)">
+    Run streaming-only refresh
+  </a>
+</p>
+
+{% if streaming_samples %}
+<h3>Sample streaming data</h3>
+<table class="admin-table">
+  <thead><tr><th>Title</th><th>Streaming</th></tr></thead>
+  <tbody>
+    {% for row in streaming_samples %}
+    <tr><td>{{ row.title }}</td><td>{{ row.streaming }}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p style="color:var(--neg)">No streaming data found in DB yet.</p>
+{% endif %}
 
 <h3>Recent refreshes</h3>
 <table class="admin-table">

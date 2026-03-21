@@ -12,7 +12,7 @@ from recommender.engine import (rebuild_affinity, get_recommendations,
                                 get_genre_insights, get_watched)
 from ingestion.tmdb_client import search_tmdb, fetch_imdb_id
 from ingestion.omdb_client import fetch_plot
-from ingestion.refresh import run_refresh
+from ingestion.refresh import run_refresh, run_streaming_refresh
 from translations import TRANSLATIONS
 
 AVATARS = [
@@ -37,7 +37,18 @@ app.secret_key = config.SECRET_KEY
 @app.context_processor
 def inject_lang():
     lang = session.get('lang', 'en')
-    return {'t': TRANSLATIONS[lang], 'lang': lang}
+    last_row = query(
+        "SELECT finished_at FROM refresh_log WHERE status='ok' ORDER BY id DESC LIMIT 1",
+        one=True
+    )
+    last_updated = None
+    if last_row and last_row["finished_at"]:
+        try:
+            dt = datetime.fromisoformat(last_row["finished_at"])
+            last_updated = dt.strftime("%-d/%-m/%Y")
+        except Exception:
+            last_updated = last_row["finished_at"][:10]
+    return {'t': TRANSLATIONS[lang], 'lang': lang, 'last_updated': last_updated}
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
@@ -52,6 +63,19 @@ def localize(item, lang):
     he_genres = item.get('genres_he', '[]')
     if he_genres and he_genres != '[]':
         item['genres'] = he_genres
+    return item
+
+
+def enrich(item):
+    """Parse genres and streaming JSON fields into Python lists."""
+    try:
+        item["genres_list"] = json.loads(item["genres"])
+    except Exception:
+        item["genres_list"] = []
+    try:
+        item["streaming_list"] = json.loads(item.get("streaming") or "[]")
+    except Exception:
+        item["streaming_list"] = []
     return item
 
 
@@ -144,12 +168,7 @@ def recommendations():
     insights = get_genre_insights(profile["id"])
 
     # Localize and parse genres
-    all_recs = [localize(i, lang) for i in all_recs]
-    for item in all_recs:
-        try:
-            item["genres_list"] = json.loads(item["genres"])
-        except Exception:
-            item["genres_list"] = []
+    all_recs = [enrich(localize(i, lang)) for i in all_recs]
 
     # Genre buttons: use Hebrew genres column when in Hebrew mode
     genres_col = "genres_he" if lang == "he" else "genres"
@@ -160,6 +179,9 @@ def recommendations():
         if g
     })
 
+    def streaming_first(items):
+        return sorted(items, key=lambda x: (0 if x["streaming_list"] else 1))
+
     if genre_filter:
         filtered = [i for i in all_recs if genre_filter in i["genres_list"]]
         if not filtered:
@@ -167,18 +189,14 @@ def recommendations():
                 f"SELECT * FROM content WHERE {genres_col} LIKE ? ORDER BY imdb_rating DESC LIMIT 50",
                 (f'%{genre_filter}%',)
             )
-            filtered = [localize(dict(i), lang) for i in db_items]
-            for item in filtered:
-                try:
-                    item["genres_list"] = json.loads(item["genres"])
-                except Exception:
-                    item["genres_list"] = []
-        grouped = {genre_filter: filtered}
+            filtered = [enrich(localize(dict(i), lang)) for i in db_items]
+        grouped = {genre_filter: streaming_first(filtered)}
     else:
         grouped = {}
         for item in all_recs:
             primary = item["genres_list"][0] if item["genres_list"] else "Other"
             grouped.setdefault(primary, []).append(item)
+        grouped = {genre: streaming_first(items) for genre, items in grouped.items()}
 
     return render_template("recommendations.html",
                            profile=profile, grouped=grouped,
@@ -193,12 +211,7 @@ def watched():
         return redirect(url_for("index"))
     lang = session.get('lang', 'en')
     items = get_watched(profile["id"])
-    items = [localize(i, lang) for i in items]
-    for item in items:
-        try:
-            item["genres_list"] = json.loads(item["genres"])
-        except Exception:
-            item["genres_list"] = []
+    items = [enrich(localize(i, lang)) for i in items]
     return render_template("watched.html", profile=profile, items=items)
 
 
@@ -228,12 +241,7 @@ def browse():
     sql += " ORDER BY imdb_rating DESC LIMIT 100"
 
     items = query(sql, params)
-    items = [localize(dict(i), lang) for i in items]
-    for item in items:
-        try:
-            item["genres_list"] = json.loads(item["genres"])
-        except Exception:
-            item["genres_list"] = []
+    items = [enrich(localize(dict(i), lang)) for i in items]
 
     # All unique genres for filter dropdown
     genres_col = "genres_he" if lang == "he" else "genres"
@@ -283,11 +291,7 @@ def title_detail(content_id):
                         (plot, content_id))
                 item["plot"] = plot
 
-    item = localize(item, lang)
-    try:
-        item["genres_list"] = json.loads(item["genres"])
-    except Exception:
-        item["genres_list"] = []
+    item = enrich(localize(item, lang))
 
     user_rating = query(
         "SELECT rating FROM ratings WHERE profile_id = ? AND content_id = ?",
@@ -312,23 +316,16 @@ def search():
             (f"%{q}%",)
         )
         if db_results:
-            results = [localize(dict(r), session.get('lang', 'en')) for r in db_results]
+            results = [enrich(localize(dict(r), session.get('lang', 'en'))) for r in db_results]
             for item in results:
                 item["source"] = "db"
-                try:
-                    item["genres_list"] = json.loads(item["genres"])
-                except Exception:
-                    item["genres_list"] = []
         else:
             # Fall back to TMDB search
             tmdb_results = search_tmdb(q, language=session.get('lang', 'en'))
             for item in tmdb_results:
                 item["source"] = "tmdb"
                 item["id"] = None
-                try:
-                    item["genres_list"] = json.loads(item["genres"])
-                except Exception:
-                    item["genres_list"] = []
+                enrich(item)
             results = tmdb_results
 
     return render_template("search.html", profile=profile, results=results, q=q)
@@ -397,7 +394,16 @@ def admin_refresh():
     secret = request.args.get("secret", "")
     if secret != config.ADMIN_SECRET:
         abort(403)
-    t = threading.Thread(target=run_refresh, daemon=True)
+    mode = request.args.get("mode", "full")
+
+    def refresh_then_streaming():
+        run_refresh()
+        run_streaming_refresh()
+
+    if mode == "streaming":
+        t = threading.Thread(target=run_streaming_refresh, daemon=True)
+    else:
+        t = threading.Thread(target=refresh_then_streaming, daemon=True)
     t.start()
     return "Refresh started in background. Check <a href='/admin/status?secret=" + config.ADMIN_SECRET + "'>status</a> for progress."
 
@@ -409,7 +415,16 @@ def admin_status():
         abort(403)
     logs = query("SELECT * FROM refresh_log ORDER BY id DESC LIMIT 10")
     total = query("SELECT COUNT(*) as c FROM content", one=True)["c"]
+    streaming_count = query(
+        "SELECT COUNT(*) as c FROM content WHERE streaming IS NOT NULL AND streaming != '[]'",
+        one=True
+    )["c"]
+    streaming_samples = query(
+        "SELECT title, streaming FROM content WHERE streaming IS NOT NULL AND streaming != '[]' LIMIT 10"
+    )
     return render_template("admin_status.html", logs=logs, total=total,
+                           streaming_count=streaming_count,
+                           streaming_samples=streaming_samples,
                            admin_secret=config.ADMIN_SECRET)
 
 
@@ -423,13 +438,15 @@ def _refresh_loop():
         print("[refresh] DB empty — running initial refresh...")
         try:
             run_refresh()
+            run_streaming_refresh()
         except Exception as e:
             print(f"[refresh] Initial refresh failed: {e}")
 
     while True:
-        time.sleep(30 * 24 * 3600)  # 30 days
+        time.sleep(7 * 24 * 3600)   # 7 days
         try:
             run_refresh()
+            run_streaming_refresh()
         except Exception as e:
             print(f"[refresh] Scheduled refresh failed: {e}")
 

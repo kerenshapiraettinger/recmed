@@ -25,6 +25,14 @@
     <p class="detail-plot">{{ item.plot }}</p>
     {% endif %}
 
+    {% if item.streaming_list %}
+    <div class="streaming-badges streaming-badges-detail">
+      {% for s in item.streaming_list %}
+      <span class="streaming-badge streaming-{{ s | lower | replace(' ', '-') }}">{{ s }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+
     <div class="rating-widget">
       <p class="rating-label" id="rating-label">
         {% if item.user_rating %}

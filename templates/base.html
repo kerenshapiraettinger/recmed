@@ -29,6 +29,12 @@
     {% block content %}{% endblock %}
   </main>
 
+  {% if last_updated %}
+  <footer class="site-footer">
+    {{ t.footer_updated }} {{ last_updated }}
+  </footer>
+  {% endif %}
+
   {% block scripts %}{% endblock %}
 </body>
 </html>

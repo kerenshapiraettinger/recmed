@@ -1,7 +1,8 @@
 import json
+import time
 from datetime import datetime, date
 from db.database import query, execute, execute_rowcount
-from ingestion.tmdb_client import discover, get_genre_map
+from ingestion.tmdb_client import discover, get_genre_map, get_watch_providers
 import config
 
 
@@ -98,3 +99,23 @@ def run_refresh():
         )
         print(f"[refresh] Error: {e}")
         raise
+
+
+def run_streaming_refresh():
+    """Slowly update streaming availability for all titles. Runs after main refresh."""
+    print("[streaming] Starting streaming provider update...")
+    titles = query("SELECT id, tmdb_id, content_type FROM content ORDER BY id")
+    updated = 0
+    for row in titles:
+        try:
+            ctype_api = "movie" if row["content_type"] == "movie" else "tv"
+            providers = get_watch_providers(row["tmdb_id"], ctype_api)
+            execute(
+                "UPDATE content SET streaming=? WHERE id=?",
+                (json.dumps(providers), row["id"])
+            )
+            updated += 1
+        except Exception as e:
+            print(f"[streaming] Error for id {row['id']}: {e}")
+        time.sleep(0.25)  # 4 requests/sec — well within TMDB limits, low server load
+    print(f"[streaming] Done — updated {updated} titles")

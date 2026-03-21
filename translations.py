@@ -48,6 +48,8 @@ EN = {
     'badge_movie': 'movie',
     'badge_series': 'series',
     'you_rated': 'You:',
+
+    'footer_updated': 'Updated on',
 }
 
 HE = {
@@ -100,6 +102,8 @@ HE = {
     'badge_movie': 'סרט',
     'badge_series': 'סדרה',
     'you_rated': 'אתה:',
+
+    'footer_updated': 'עודכן בתאריך',
 }
 
 TRANSLATIONS = {'en': EN, 'he': HE}

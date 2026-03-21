@@ -53,6 +53,10 @@ def get_recommendations(profile_id, limit=20):
         "SELECT content_id FROM ratings WHERE profile_id = ?", (profile_id,)
     )}
 
+    any_rated_ids = {row["content_id"] for row in query(
+        "SELECT DISTINCT content_id FROM ratings"
+    )}
+
     all_content = query("SELECT * FROM content ORDER BY imdb_rating DESC")
 
     current_year = date.today().year
@@ -65,7 +69,7 @@ def get_recommendations(profile_id, limit=20):
         except (ValueError, TypeError):
             genres = []
         genre_score = sum(affinity.get(g, 0) for g in genres)
-        imdb_bonus = 0.3 * (item["imdb_rating"] or 0)
+        imdb_bonus = 0.3 * (item["imdb_rating"] or 0) if item["id"] in any_rated_ids else 0
         age_penalty = 0.1 * max(0, current_year - item["release_year"])
         score = genre_score + imdb_bonus - age_penalty
         scored.append((score, item))

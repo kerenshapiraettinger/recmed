@@ -35,6 +35,11 @@
       {% if item.plot %}
       <p class="search-plot">{{ item.plot }}</p>
       {% endif %}
+      {% if item.streaming_list %}
+      <div class="streaming-badges">
+        {% for s in item.streaming_list %}<span class="streaming-badge streaming-{{ s | lower | replace(' ', '-') }}">{{ s }}</span>{% endfor %}
+      </div>
+      {% endif %}
     </div>
 
     <div class="search-action">
