@@ -101,6 +101,28 @@ def run_refresh():
         raise
 
 
+def run_backfill_he():
+    """Fetch Hebrew title/plot and streaming for titles that are missing them."""
+    from ingestion.tmdb_client import get_title_he, get_watch_providers
+    rows = query(
+        "SELECT id, tmdb_id, content_type, title_he FROM content WHERE title_he IS NULL OR title_he = ''"
+    )
+    print(f"[backfill] {len(rows)} titles missing Hebrew data")
+    for row in rows:
+        try:
+            ctype_api = "movie" if row["content_type"] == "movie" else "tv"
+            title_he, plot_he = get_title_he(row["tmdb_id"], ctype_api)
+            providers = get_watch_providers(row["tmdb_id"], ctype_api)
+            execute(
+                "UPDATE content SET title_he=?, plot_he=?, streaming=? WHERE id=?",
+                (title_he, plot_he, json.dumps(providers), row["id"])
+            )
+        except Exception as e:
+            print(f"[backfill] Error for id {row['id']}: {e}")
+        time.sleep(0.25)
+    print("[backfill] Done")
+
+
 def run_streaming_refresh():
     """Slowly update streaming availability for all titles. Runs after main refresh."""
     from ingestion.kan11_client import match_kan11

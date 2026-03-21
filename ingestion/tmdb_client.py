@@ -101,6 +101,17 @@ def fetch_imdb_id(tmdb_id, content_type="movie"):
     except Exception:
         return None
 
+def get_title_he(tmdb_id, content_type="movie"):
+    """Fetch Hebrew title and plot for a specific title."""
+    path = f"/movie/{tmdb_id}" if content_type == "movie" else f"/tv/{tmdb_id}"
+    try:
+        data = _get(path, {"language": "he-IL"})
+        title_he = data.get("title") or data.get("name") or ""
+        plot_he  = data.get("overview") or ""
+        return title_he, plot_he
+    except Exception:
+        return "", ""
+
 def get_watch_providers(tmdb_id, content_type="movie"):
     """Return all flatrate streaming provider names available in Israel."""
     path = (f"/movie/{tmdb_id}/watch/providers"

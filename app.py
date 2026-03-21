@@ -10,9 +10,9 @@ import config
 from db.database import init_db, query, execute
 from recommender.engine import (rebuild_affinity, get_recommendations,
                                 get_genre_insights, get_watched)
-from ingestion.tmdb_client import search_tmdb, fetch_imdb_id
+from ingestion.tmdb_client import search_tmdb, fetch_imdb_id, get_title_he, get_watch_providers
 from ingestion.omdb_client import fetch_plot
-from ingestion.refresh import run_refresh, run_streaming_refresh
+from ingestion.refresh import run_refresh, run_streaming_refresh, run_backfill_he
 from translations import TRANSLATIONS
 
 AVATARS = [
@@ -347,20 +347,34 @@ def add_from_search():
     plot       = request.form.get("plot", "")
 
     today = datetime.utcnow().date().isoformat()
+    ctype_api = "movie" if ctype == "movie" else "tv"
+
+    # Fetch Hebrew title/plot and streaming providers in background-friendly way
+    title_he, plot_he = get_title_he(tmdb_id, ctype_api)
+    providers = get_watch_providers(tmdb_id, ctype_api)
+    streaming = json.dumps(providers)
 
     # Upsert into content
     existing = query("SELECT id FROM content WHERE tmdb_id = ?", (tmdb_id,), one=True)
     if existing:
         content_id = existing["id"]
-        if plot:
-            execute("UPDATE content SET plot = ? WHERE id = ? AND (plot IS NULL OR plot = '')",
-                    (plot, content_id))
+        execute(
+            """UPDATE content SET
+               plot = COALESCE(NULLIF(plot,''), ?),
+               title_he = COALESCE(NULLIF(title_he,''), ?),
+               plot_he  = COALESCE(NULLIF(plot_he,''),  ?),
+               streaming = COALESCE(NULLIF(streaming,'[]'), ?)
+               WHERE id = ?""",
+            (plot, title_he, plot_he, streaming, content_id)
+        )
     else:
         content_id = execute(
             """INSERT INTO content (tmdb_id, title, content_type, release_year,
-               imdb_rating, genres, poster_url, plot, last_refreshed)
-               VALUES (?,?,?,?,?,?,?,?,?)""",
-            (tmdb_id, title, ctype, year, rating_val, "[]", poster, plot, today)
+               imdb_rating, genres, poster_url, plot,
+               title_he, plot_he, genres_he, streaming, last_refreshed)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (tmdb_id, title, ctype, year, rating_val, "[]", poster, plot,
+             title_he, plot_he, "[]", streaming, today)
         )
 
     return redirect(url_for("title_detail", content_id=content_id))
@@ -406,6 +420,16 @@ def admin_refresh():
         t = threading.Thread(target=refresh_then_streaming, daemon=True)
     t.start()
     return "Refresh started in background. Check <a href='/admin/status?secret=" + config.ADMIN_SECRET + "'>status</a> for progress."
+
+
+@app.route("/admin/backfill_he")
+def admin_backfill_he():
+    secret = request.args.get("secret", "")
+    if secret != config.ADMIN_SECRET:
+        abort(403)
+    t = threading.Thread(target=run_backfill_he, daemon=True)
+    t.start()
+    return "Hebrew backfill started. Check <a href='/admin/status?secret=" + config.ADMIN_SECRET + "'>status</a> and server logs for progress."
 
 
 @app.route("/admin/providers_debug")
