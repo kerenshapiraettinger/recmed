@@ -408,6 +408,31 @@ def admin_refresh():
     return "Refresh started in background. Check <a href='/admin/status?secret=" + config.ADMIN_SECRET + "'>status</a> for progress."
 
 
+@app.route("/admin/providers_debug")
+def admin_providers_debug():
+    secret = request.args.get("secret", "")
+    if secret != config.ADMIN_SECRET:
+        abort(403)
+    from ingestion.tmdb_client import _get
+    samples = query("SELECT tmdb_id, title, content_type FROM content LIMIT 20")
+    results = []
+    for row in samples:
+        ctype = "movie" if row["content_type"] == "movie" else "tv"
+        path = f"/{ctype}/{row['tmdb_id']}/watch/providers"
+        try:
+            data = _get(path)
+            il = data.get("results", {}).get("IL", {})
+            flatrate = [p["provider_name"] for p in il.get("flatrate", [])]
+            results.append({"title": row["title"], "providers": flatrate})
+        except Exception as e:
+            results.append({"title": row["title"], "providers": [f"error: {e}"]})
+    output = "<h2>Raw IL providers (first 20 titles)</h2><table border=1 cellpadding=4>"
+    for r in results:
+        output += f"<tr><td>{r['title']}</td><td>{', '.join(r['providers']) or '—'}</td></tr>"
+    output += "</table>"
+    return output
+
+
 @app.route("/admin/status")
 def admin_status():
     secret = request.args.get("secret", "")
