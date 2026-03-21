@@ -123,6 +123,26 @@ def run_backfill_he():
     print("[backfill] Done")
 
 
+def run_backfill_director():
+    """Fetch director for all titles currently missing it."""
+    from ingestion.tmdb_client import get_director
+    rows = query(
+        "SELECT id, tmdb_id, content_type FROM content WHERE director IS NULL OR director = ''"
+    )
+    print(f"[backfill_director] {len(rows)} titles missing director data")
+    updated = 0
+    for row in rows:
+        try:
+            ctype_api = "movie" if row["content_type"] == "movie" else "tv"
+            director = get_director(row["tmdb_id"], ctype_api)
+            execute("UPDATE content SET director=? WHERE id=?", (director, row["id"]))
+            updated += 1
+        except Exception as e:
+            print(f"[backfill_director] Error for id {row['id']}: {e}")
+        time.sleep(0.25)
+    print(f"[backfill_director] Done — updated {updated} titles")
+
+
 def run_streaming_refresh():
     """Slowly update streaming availability for all titles. Runs after main refresh."""
     from ingestion.kan11_client import match_kan11

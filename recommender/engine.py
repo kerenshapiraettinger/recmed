@@ -1,7 +1,32 @@
 import json
 import math
+import re
 from datetime import date, datetime
 from db.database import query, execute, executemany
+
+_STOPWORDS = {
+    'a', 'an', 'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
+    'of', 'with', 'by', 'from', 'as', 'is', 'was', 'are', 'were', 'be',
+    'been', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would',
+    'could', 'should', 'may', 'might', 'must', 'shall', 'can', 'their',
+    'they', 'he', 'she', 'it', 'we', 'you', 'i', 'his', 'her', 'its',
+    'our', 'your', 'my', 'this', 'that', 'these', 'those', 'who', 'which',
+    'what', 'when', 'where', 'how', 'why', 'not', 'no', 'if', 'into',
+    'out', 'up', 'about', 'after', 'before', 'through', 'over', 'under',
+    'between', 'then', 'than', 'so', 'while', 'each', 'all', 'also',
+    'just', 'more', 'one', 'two', 'new', 'him', 'them', 'her', 'its',
+    'find', 'life', 'only', 'when', 'after', 'story', 'must', 'make',
+    'take', 'come', 'back', 'away', 'face', 'turn', 'help', 'work',
+    'live', 'goes', 'sets', 'gets', 'goes', 'life', 'time', 'world',
+    'show', 'want', 'left', 'soon', 'even', 'both', 'much', 'many',
+}
+
+
+def _keywords(text):
+    """Extract meaningful words (4+ chars, non-stopword) from plot text."""
+    if not text:
+        return []
+    return [w for w in re.findall(r'[a-z]{4,}', text.lower()) if w not in _STOPWORDS]
 
 
 def rebuild_affinity(profile_id):
@@ -44,18 +69,62 @@ def rebuild_affinity(profile_id):
 
 
 def get_recommendations(profile_id, limit=20):
+    # Load all rated titles with content details for building signals
+    rating_rows = query(
+        """SELECT r.rating, r.content_id, c.imdb_rating, c.genres, c.plot, c.director
+           FROM ratings r
+           JOIN content c ON c.id = r.content_id
+           WHERE r.profile_id = ?""",
+        (profile_id,)
+    )
+    n_ratings = len(rating_rows)
+
+    # Phase-based weights
+    if n_ratings < 10:
+        w_genre, w_kw, w_dir, w_imdb = 0.70, 0.00, 0.00, 0.30
+    elif n_ratings < 30:
+        w_genre, w_kw, w_dir, w_imdb = 0.55, 0.25, 0.00, 0.20
+    else:
+        w_genre, w_kw, w_dir, w_imdb = 0.45, 0.30, 0.10, 0.15
+
+    # Genre affinity from pre-computed table
     affinity_rows = query(
         "SELECT genre, score FROM genre_affinity WHERE profile_id = ?", (profile_id,)
     )
     affinity = {row["genre"]: row["score"] for row in affinity_rows}
 
-    rated_ids = {row["content_id"] for row in query(
-        "SELECT content_id FROM ratings WHERE profile_id = ?", (profile_id,)
-    )}
+    rated_ids = {row["content_id"] for row in rating_rows}
 
     any_rated_ids = {row["content_id"] for row in query(
         "SELECT DISTINCT content_id FROM ratings"
     )}
+
+    # Build keyword affinity from rated titles' plots
+    kw_deltas = {}
+    for row in rating_rows:
+        delta = row["rating"] - (row["imdb_rating"] or 7.0)
+        for kw in set(_keywords(row["plot"] or "")):
+            kw_deltas.setdefault(kw, []).append(delta)
+    # Keyword must appear in plots of 3+ rated titles to count
+    kw_affinity = {
+        kw: (sum(d) / len(d)) * math.log1p(len(d))
+        for kw, d in kw_deltas.items()
+        if len(d) >= 3
+    }
+
+    # Build director affinity from rated titles
+    dir_deltas = {}
+    for row in rating_rows:
+        director = (row.get("director") or "").strip()
+        if director:
+            delta = row["rating"] - (row["imdb_rating"] or 7.0)
+            dir_deltas.setdefault(director, []).append(delta)
+    # Director must appear in 2+ rated titles to count
+    dir_affinity = {
+        d: (sum(v) / len(v)) * math.log1p(len(v))
+        for d, v in dir_deltas.items()
+        if len(v) >= 2
+    }
 
     all_content = query("SELECT * FROM content ORDER BY imdb_rating DESC")
 
@@ -64,14 +133,36 @@ def get_recommendations(profile_id, limit=20):
     for item in all_content:
         if item["id"] in rated_ids:
             continue
+
         try:
             genres = json.loads(item["genres"])
         except (ValueError, TypeError):
             genres = []
+
         genre_score = sum(affinity.get(g, 0) for g in genres)
-        imdb_bonus = 0.3 * (item["imdb_rating"] or 0) if item["id"] in any_rated_ids else 0
+
+        kw_score = 0.0
+        if w_kw > 0 and kw_affinity:
+            for kw in set(_keywords(item["plot"] or "")):
+                kw_score += kw_affinity.get(kw, 0)
+
+        dir_score = 0.0
+        if w_dir > 0 and dir_affinity:
+            director = (item.get("director") or "").strip()
+            if director:
+                dir_score = dir_affinity.get(director, 0)
+
+        imdb_bonus = (item["imdb_rating"] or 0) if item["id"] in any_rated_ids else 0
+
         age_penalty = 0.1 * max(0, current_year - item["release_year"])
-        score = genre_score + imdb_bonus - age_penalty
+
+        score = (
+            w_genre * genre_score
+            + w_kw * kw_score
+            + w_dir * dir_score
+            + w_imdb * imdb_bonus
+            - age_penalty
+        )
         scored.append((score, item))
 
     scored.sort(key=lambda x: x[0], reverse=True)

@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS content (
     genres          TEXT NOT NULL DEFAULT '[]',
     poster_url      TEXT,
     plot            TEXT,
+    director        TEXT,
     title_he        TEXT DEFAULT '',
     plot_he         TEXT DEFAULT '',
     genres_he       TEXT DEFAULT '[]',

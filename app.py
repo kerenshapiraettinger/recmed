@@ -12,7 +12,7 @@ from recommender.engine import (rebuild_affinity, get_recommendations,
                                 get_genre_insights, get_watched)
 from ingestion.tmdb_client import search_tmdb, fetch_imdb_id, get_title_he, get_watch_providers
 from ingestion.omdb_client import fetch_plot
-from ingestion.refresh import run_refresh, run_streaming_refresh, run_backfill_he
+from ingestion.refresh import run_refresh, run_streaming_refresh, run_backfill_he, run_backfill_director
 from translations import TRANSLATIONS
 
 AVATARS = [
@@ -430,6 +430,16 @@ def admin_backfill_he():
     t = threading.Thread(target=run_backfill_he, daemon=True)
     t.start()
     return "Hebrew backfill started. Check <a href='/admin/status?secret=" + config.ADMIN_SECRET + "'>status</a> and server logs for progress."
+
+
+@app.route("/admin/backfill_director")
+def admin_backfill_director():
+    secret = request.args.get("secret", "")
+    if secret != config.ADMIN_SECRET:
+        abort(403)
+    t = threading.Thread(target=run_backfill_director, daemon=True)
+    t.start()
+    return "Director backfill started. Check <a href='/admin/status?secret=" + config.ADMIN_SECRET + "'>status</a> and server logs for progress."
 
 
 @app.route("/admin/providers_debug")

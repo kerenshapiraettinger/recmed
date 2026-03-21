@@ -124,6 +124,25 @@ def get_watch_providers(tmdb_id, content_type="movie"):
     except Exception:
         return []
 
+def get_director(tmdb_id, content_type="movie"):
+    """Fetch the primary director name for a title from TMDB credits."""
+    path = (f"/movie/{tmdb_id}/credits"
+            if content_type == "movie"
+            else f"/tv/{tmdb_id}/credits")
+    try:
+        data = _get(path)
+        if content_type == "movie":
+            directors = [p["name"] for p in data.get("crew", []) if p.get("job") == "Director"]
+        else:
+            directors = [p["name"] for p in data.get("crew", [])
+                         if p.get("job") in ("Director", "Series Director")]
+            if not directors:
+                directors = [p["name"] for p in data.get("created_by", [])]
+        return directors[0] if directors else ""
+    except Exception:
+        return ""
+
+
 def search_tmdb(query, content_type=None, language='en'):
     """Search TMDB for movies and/or series by title."""
     results = []
