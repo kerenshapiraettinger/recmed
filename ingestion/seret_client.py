@@ -12,7 +12,6 @@ HEADERS = {
     ),
     "Accept-Language": "he-IL,he;q=0.9,en;q=0.8",
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-    "Accept-Encoding": "gzip, deflate, br",
     "Referer": "https://www.seret.co.il/",
 }
 MIN_VOTES = 10
@@ -20,9 +19,9 @@ MIN_VOTES = 10
 
 def _fetch(url, params=None, data=None):
     if data:
-        r = requests.post(url, headers=HEADERS, data=data, timeout=15)
+        r = requests.post(url, headers=HEADERS, data=data, timeout=6)
     else:
-        r = requests.get(url, headers=HEADERS, params=params, timeout=15)
+        r = requests.get(url, headers=HEADERS, params=params, timeout=6)
     r.raise_for_status()
     r.encoding = "windows-1255"
     return BeautifulSoup(r.text, "html.parser")
@@ -117,7 +116,7 @@ def find_seret_rating(title_he, release_year=None):
 
     norm_query = _normalize(title_he)
 
-    for mid, _ in candidates[:5]:
+    for mid, _ in candidates[:3]:
         rating, votes, year, page_title = _fetch_page(mid)
         time.sleep(0.3)
 

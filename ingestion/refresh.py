@@ -151,10 +151,11 @@ def run_seret_refresh():
     rows = query(
         """SELECT id, title_he, release_year FROM content
            WHERE title_he IS NOT NULL AND title_he != ''
-           AND release_year >= ?""",
+           AND release_year >= ?
+           AND (seret_rating IS NULL)""",
         (min_year,)
     )
-    print(f"[seret] Processing {len(rows)} titles from last 5 years")
+    print(f"[seret] Processing {len(rows)} titles from last 5 years (skipping already-rated)")
     updated = 0
     for row in rows:
         try:
@@ -170,7 +171,9 @@ def run_seret_refresh():
                 print(f"[seret] {row['title_he']} → {seret_rating}/10 ({seret_votes} votes)")
         except Exception as e:
             print(f"[seret] Error for id {row['id']}: {e}")
-        time.sleep(0.3)
+            time.sleep(30)  # back off on errors to avoid rate-limit spiral
+        else:
+            time.sleep(1)
     print(f"[seret] Done — found seret ratings for {updated} titles")
 
 
